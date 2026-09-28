@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>iPad Screen Capture Capability Test</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0b1220;
+      color: #f5f7fb;
+      min-height: 100vh;
+    }
+    main {
+      width: min(900px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 42px); }
+    .sub { color: #aeb8c8; margin-bottom: 24px; line-height: 1.45; }
+    .card {
+      border: 1px solid #2c3a50;
+      border-radius: 16px;
+      padding: 18px;
+      margin: 14px 0;
+      background: #111a2a;
+    }
+    .status {
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .yes { color: #6ee7a8; }
+    .no { color: #ff8585; }
+    .maybe { color: #ffd479; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+    td {
+      padding: 9px 6px;
+      border-top: 1px solid #253248;
+      vertical-align: top;
+    }
+    td:first-child { width: 45%; color: #b9c3d2; }
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 17px;
+      margin: 6px 8px 6px 0;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #e9eef8;
+      color: #0b1220;
+    }
+    button.secondary {
+      background: #27364d;
+      color: #f5f7fb;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #080d16;
+      border-radius: 12px;
+      padding: 14px;
+      max-height: 360px;
+      overflow: auto;
+      font-size: 13px;
+    }
+    video {
+      width: 100%;
+      max-height: 520px;
+      background: #000;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+    .small { color: #9eabba; font-size: 13px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>iPad Screen Capture Test</h1>
+  <div class="sub">
+    This page checks whether this browser exposes the web screen-capture API needed
+    for a GitHub-only iPad screen sender.
+  </div>
+
+  <section class="card">
+    <div id="headline" class="status">Checking browser capabilities…</div>
+    <table id="checks"></table>
+  </section>
+
+  <section class="card">
+    <div class="status">Live capture test</div>
+    <button id="tryBtn">Try Screen Capture</button>
+    <button id="stopBtn" class="secondary" disabled>Stop Capture</button>
+    <div id="attempt" class="small">No capture attempt yet.</div>
+    <video id="preview" autoplay playsinline muted></video>
+  </section>
+
+  <section class="card">
+    <div class="status">Results</div>
+    <button id="copyBtn" class="secondary">Copy Results</button>
+    <pre id="results"></pre>
+  </section>
+</main>
+
+<script>
+(() => {
+  const rows = [];
+  const result = {
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    secureContext: window.isSecureContext,
+    standalone: !!(window.navigator.standalone || window.matchMedia?.("(display-mode: standalone)")?.matches),
+    mediaDevices: !!navigator.mediaDevices,
+    getUserMedia: typeof navigator.mediaDevices?.getUserMedia,
+    getDisplayMedia: typeof navigator.mediaDevices?.getDisplayMedia,
+    legacyGetDisplayMedia: typeof navigator.getDisplayMedia,
+    mediaRecorder: typeof window.MediaRecorder,
+    rtcPeerConnection: typeof window.RTCPeerConnection,
+    captureAttempt: null
+  };
+
+  function addRow(label, value) {
+    rows.push([label, String(value)]);
+  }
+
+  addRow("Secure context (HTTPS)", result.secureContext);
+  addRow("mediaDevices available", result.mediaDevices);
+  addRow("getUserMedia", result.getUserMedia);
+  addRow("getDisplayMedia", result.getDisplayMedia);
+  addRow("legacy navigator.getDisplayMedia", result.legacyGetDisplayMedia);
+  addRow("MediaRecorder", result.mediaRecorder);
+  addRow("RTCPeerConnection", result.rtcPeerConnection);
+  addRow("Standalone/PWA mode", result.standalone);
+  addRow("Platform", result.platform);
+  addRow("User agent", result.userAgent);
+
+  const checks = document.getElementById("checks");
+  rows.forEach(([k, v]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td>`;
+    checks.appendChild(tr);
+  });
+
+  const headline = document.getElementById("headline");
+  const supported = typeof navigator.mediaDevices?.getDisplayMedia === "function";
+
+  if (supported) {
+    headline.textContent = "getDisplayMedia IS exposed by this browser.";
+    headline.className = "status yes";
+  } else {
+    headline.textContent = "getDisplayMedia is NOT exposed by this browser.";
+    headline.className = "status no";
+  }
+
+  const results = document.getElementById("results");
+  function render() {
+    results.textContent = JSON.stringify(result, null, 2);
+  }
+  render();
+
+  let stream = null;
+  const tryBtn = document.getElementById("tryBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const attempt = document.getElementById("attempt");
+  const preview = document.getElementById("preview");
+
+  tryBtn.addEventListener("click", async () => {
+    if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
+      result.captureAttempt = {
+        attempted: false,
+        reason: "navigator.mediaDevices.getDisplayMedia is unavailable"
+      };
+      attempt.textContent = "Cannot attempt capture: getDisplayMedia is unavailable.";
+      attempt.className = "small no";
+      render();
+      return;
+    }
+
+    try {
+      attempt.textContent = "Requesting screen capture…";
+      attempt.className = "small maybe";
+
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true
+      });
+
+      preview.srcObject = stream;
+      const videoTrack = stream.getVideoTracks()[0];
+      const audioTracks = stream.getAudioTracks();
+
+      result.captureAttempt = {
+        attempted: true,
+        success: true,
+        videoTrackLabel: videoTrack?.label || null,
+        videoSettings: videoTrack?.getSettings ? videoTrack.getSettings() : null,
+        audioTrackCount: audioTracks.length
+      };
+
+      attempt.textContent = "Screen capture started successfully.";
+      attempt.className = "small yes";
+      stopBtn.disabled = false;
+
+      if (videoTrack) {
+        videoTrack.addEventListener("ended", stopCapture);
+      }
+      render();
+    } catch (err) {
+      result.captureAttempt = {
+        attempted: true,
+        success: false,
+        errorName: err?.name || "UnknownError",
+        errorMessage: err?.message || String(err)
+      };
+      attempt.textContent = `Capture failed: ${err?.name || "Error"} — ${err?.message || err}`;
+      attempt.className = "small no";
+      render();
+    }
+  });
+
+  function stopCapture() {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    preview.srcObject = null;
+    stopBtn.disabled = true;
+    attempt.textContent = "Capture stopped.";
+    attempt.className = "small";
+  }
+
+  stopBtn.addEventListener("click", stopCapture);
+
+  document.getElementById("copyBtn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(results.textContent);
+      const b = document.getElementById("copyBtn");
+      const old = b.textContent;
+      b.textContent = "Copied";
+      setTimeout(() => b.textContent = old, 1200);
+    } catch {
+      window.prompt("Copy these results:", results.textContent);
+    }
+  });
+
+  function escapeHtml(str) {
+    return str
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+})();
+</script>
+</body>
+</html>
