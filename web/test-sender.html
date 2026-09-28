@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>iPad Mirror - Test Sender</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell narrow">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Development utility</p>
+        <h1>Test Sender</h1>
+      </div>
+      <div id="connectionBadge" class="badge badge-waiting">Idle</div>
+    </header>
+
+    <section class="session-card sender-card">
+      <div class="field-group">
+        <label class="label" for="sessionInput">Receiver session code</label>
+        <input id="sessionInput" class="session-input" type="text" inputmode="text" autocomplete="off" maxlength="11" placeholder="ABCDE-FGHIJ" />
+        <p class="muted">Open the receiver page first and enter its code here.</p>
+      </div>
+      <div class="sender-actions">
+        <button id="startButton" class="button primary" type="button">Share this screen</button>
+        <button id="stopButton" class="button secondary" type="button" disabled>Stop</button>
+      </div>
+    </section>
+
+    <section class="viewer-card">
+      <div class="video-stage local-stage">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div id="emptyState" class="empty-state">
+          <h2>No screen selected</h2>
+          <p>This page is only for testing WebRTC signaling before the native iPad app is built.</p>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="stats">
+          <span><strong>Status:</strong> <span id="statusText">Idle</span></span>
+          <span><strong>Transport:</strong> <span id="transportText">—</span></span>
+        </div>
+      </div>
+    </section>
+
+    <details class="details-card">
+      <summary>Connection details</summary>
+      <pre id="diagnostics">No diagnostics yet.</pre>
+    </details>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script src="sender.js"></script>
+</body>
+</html>

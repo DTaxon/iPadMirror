@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>iPad Mirror</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Browser receiver</p>
+        <h1 id="appName">iPad Mirror</h1>
+      </div>
+      <div id="connectionBadge" class="badge badge-waiting">Starting…</div>
+    </header>
+
+    <section class="session-card" aria-labelledby="sessionHeading">
+      <div>
+        <p class="label" id="sessionHeading">Session code</p>
+        <div class="code-row">
+          <output id="sessionCode" class="session-code" aria-live="polite">———</output>
+          <button id="copyCodeButton" class="button secondary" type="button" disabled>Copy</button>
+        </div>
+        <p id="sessionHelp" class="muted">Creating a secure signaling session…</p>
+      </div>
+      <button id="newSessionButton" class="button secondary" type="button">New session</button>
+    </section>
+
+    <section class="viewer-card">
+      <div id="videoStage" class="video-stage">
+        <video id="remoteVideo" autoplay muted playsinline></video>
+        <div id="emptyState" class="empty-state">
+          <div class="device-icon" aria-hidden="true"></div>
+          <h2>Waiting for iPad</h2>
+          <p>Enter the session code in the iPad app. The video stream will appear here.</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="fullscreenButton" class="button primary" type="button" disabled>Full screen</button>
+        <button id="audioButton" class="button secondary" type="button" disabled>Enable audio</button>
+        <div class="stats" aria-live="polite">
+          <span><strong>Status:</strong> <span id="statusText">Initializing</span></span>
+          <span><strong>Transport:</strong> <span id="transportText">—</span></span>
+          <span><strong>Resolution:</strong> <span id="resolutionText">—</span></span>
+        </div>
+      </div>
+    </section>
+
+    <details class="details-card">
+      <summary>Connection details</summary>
+      <pre id="diagnostics">No diagnostics yet.</pre>
+    </details>
+
+    <p class="footer-note">The browser page only receives the live WebRTC stream. It does not record or store video.</p>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script src="receiver.js"></script>
+</body>
+</html>

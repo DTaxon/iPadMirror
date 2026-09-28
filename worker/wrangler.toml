@@ -1,0 +1,16 @@
+name = "ipad-mirror-signal"
+main = "src/index.js"
+compatibility_date = "2026-09-28"
+
+[vars]
+# Use "*" while first testing. After GitHub Pages is live, change this to
+# your exact Pages origin, for example: https://YOURNAME.github.io
+ALLOWED_ORIGIN = "*"
+
+[[durable_objects.bindings]]
+name = "SIGNALING_SESSION"
+class_name = "SignalingSession"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SignalingSession"]
