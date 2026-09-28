@@ -3,5 +3,5 @@ window.MIRROR_CONFIG = Object.freeze({
 
   // After deploying the Cloudflare Worker, replace this with its URL.
   // Example: https://ipad-mirror-signal.your-subdomain.workers.dev
-  API_BASE: "https://YOUR-WORKER.workers.dev",
+  API_BASE: "https://ipad-mirror-signal.drake-taxon.workers.dev",,
 });
