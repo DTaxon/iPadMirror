@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
 
@@ -13,6 +14,8 @@
     <style>
         :root {
             color-scheme: dark;
+
+            --viewer-background: #000000;
         }
 
         * {
@@ -23,10 +26,12 @@
         body {
             width: 100%;
             height: 100%;
+
             margin: 0;
+
             overflow: hidden;
 
-            background: #000;
+            background: var(--viewer-background);
             color: #fff;
 
             font-family:
@@ -38,6 +43,13 @@
                 sans-serif;
         }
 
+
+        /*
+        ============================================================
+        Viewer
+        ============================================================
+        */
+
         #stage {
             position: fixed;
             inset: 0;
@@ -48,13 +60,16 @@
 
             overflow: hidden;
 
-            background: #000;
+            background: var(--viewer-background);
         }
+
 
         /*
         Source UVC video is hidden.
+
         The canvas is what the user actually sees.
         */
+
         #sourceVideo {
             position: fixed;
 
@@ -69,14 +84,22 @@
             pointer-events: none;
         }
 
+
         #outputCanvas {
             display: block;
 
             margin: 0;
             padding: 0;
 
-            background: #000;
+            background: var(--viewer-background);
         }
+
+
+        /*
+        ============================================================
+        Controls
+        ============================================================
+        */
 
         #controls {
             position: fixed;
@@ -96,7 +119,7 @@
             gap: 8px;
 
             width: min(
-                1100px,
+                1200px,
                 calc(100vw - 24px)
             );
 
@@ -111,6 +134,7 @@
             -webkit-backdrop-filter: blur(12px);
         }
 
+
         #controls.collapsed {
             top: 12px;
             left: 12px;
@@ -123,9 +147,11 @@
             transform: none;
         }
 
+
         #controls.collapsed > *:not(#collapseButton) {
             display: none;
         }
+
 
         #controls.collapsed #collapseButton {
             display: block;
@@ -138,6 +164,7 @@
 
             font-size: 18px;
         }
+
 
         select,
         button {
@@ -154,23 +181,29 @@
             font-size: 14px;
         }
 
+
         select {
             min-width: 260px;
             max-width: 420px;
         }
 
+
         button {
             cursor: pointer;
         }
+
 
         button:hover {
             background: #383838;
         }
 
+
         button:disabled {
             opacity: 0.45;
+
             cursor: default;
         }
+
 
         #collapseButton {
             min-width: 38px;
@@ -181,23 +214,87 @@
             font-size: 17px;
         }
 
+
         #startButton {
             background: #176b36;
             border-color: #26884c;
         }
 
+
         #startButton:hover {
             background: #1d8142;
         }
+
 
         #stopButton {
             background: #702828;
             border-color: #8a3434;
         }
 
+
         #stopButton:hover {
             background: #853030;
         }
+
+
+        /*
+        ============================================================
+        Background color selector
+        ============================================================
+        */
+
+        #backgroundControl {
+            display: flex;
+            align-items: center;
+
+            gap: 7px;
+
+            min-height: 38px;
+
+            padding: 4px 8px;
+
+            border: 1px solid #555;
+            border-radius: 7px;
+
+            background: #262626;
+
+            color: #ddd;
+
+            font-size: 13px;
+        }
+
+
+        #backgroundColorPicker {
+            width: 32px;
+            height: 28px;
+
+            margin: 0;
+            padding: 0;
+
+            border: 0;
+
+            background: transparent;
+
+            cursor: pointer;
+        }
+
+
+        #backgroundColorPicker::-webkit-color-swatch-wrapper {
+            padding: 2px;
+        }
+
+
+        #backgroundColorPicker::-webkit-color-swatch {
+            border: 1px solid #777;
+            border-radius: 5px;
+        }
+
+
+        /*
+        ============================================================
+        Diagnostics
+        ============================================================
+        */
 
         #diagnostics {
             margin-left: 4px;
@@ -205,8 +302,16 @@
             color: #aaa;
 
             font-size: 12px;
+
             white-space: nowrap;
         }
+
+
+        /*
+        ============================================================
+        Status message
+        ============================================================
+        */
 
         #message {
             position: fixed;
@@ -238,18 +343,29 @@
                 visibility 0.2s ease;
         }
 
+
         #message.collapsed {
             opacity: 0;
+
             visibility: hidden;
         }
+
 
         #message.live {
             color: #8ee6a8;
         }
 
+
         #message.error {
             color: #ff9696;
         }
+
+
+        /*
+        ============================================================
+        Startup screen
+        ============================================================
+        */
 
         #startup {
             position: fixed;
@@ -264,12 +380,15 @@
             pointer-events: none;
         }
 
+
         #startupContent {
             padding: 30px;
 
             color: #aaa;
+
             text-align: center;
         }
+
 
         #startupContent h1 {
             margin: 0 0 8px 0;
@@ -280,11 +399,19 @@
             font-weight: 500;
         }
 
+
         #startupContent p {
             margin: 0;
 
             font-size: 15px;
         }
+
+
+        /*
+        ============================================================
+        Small-screen controls
+        ============================================================
+        */
 
         @media (max-width: 800px) {
 
@@ -292,10 +419,12 @@
                 justify-content: flex-start;
             }
 
+
             #controls:not(.collapsed) select {
                 width: 100%;
                 max-width: none;
             }
+
 
             #controls:not(.collapsed) #diagnostics {
                 width: 100%;
@@ -307,6 +436,7 @@
         }
     </style>
 </head>
+
 
 <body>
 
@@ -325,6 +455,7 @@
 
     </div>
 
+
     <div id="startup">
 
         <div id="startupContent">
@@ -341,6 +472,7 @@
 
     </div>
 
+
     <div id="controls">
 
         <button
@@ -351,6 +483,7 @@
             ▲
         </button>
 
+
         <select
             id="deviceSelect"
             aria-label="Video capture device"
@@ -360,6 +493,7 @@
             </option>
         </select>
 
+
         <button
             id="refreshButton"
             type="button"
@@ -367,12 +501,14 @@
             Refresh
         </button>
 
+
         <button
             id="startButton"
             type="button"
         >
             Start Capture
         </button>
+
 
         <button
             id="stopButton"
@@ -382,6 +518,7 @@
             Stop
         </button>
 
+
         <button
             id="rotateLeftButton"
             type="button"
@@ -389,6 +526,7 @@
         >
             ↺ 90°
         </button>
+
 
         <button
             id="rotateRightButton"
@@ -398,6 +536,32 @@
             ↻ 90°
         </button>
 
+
+        <label
+            id="backgroundControl"
+            title="Viewer background color"
+        >
+
+            Background
+
+            <input
+                id="backgroundColorPicker"
+                type="color"
+                value="#000000"
+            >
+
+        </label>
+
+
+        <button
+            id="resetBackgroundButton"
+            type="button"
+            title="Reset background to black"
+        >
+            Reset BG
+        </button>
+
+
         <button
             id="fullscreenButton"
             type="button"
@@ -405,11 +569,13 @@
             Fullscreen
         </button>
 
+
         <div id="diagnostics">
             No active video
         </div>
 
     </div>
+
 
     <div id="message">
         Waiting for capture device.
@@ -431,15 +597,18 @@
                 "stage"
             );
 
+
         const sourceVideo =
             document.getElementById(
                 "sourceVideo"
             );
 
+
         const outputCanvas =
             document.getElementById(
                 "outputCanvas"
             );
+
 
         const outputContext =
             outputCanvas.getContext(
@@ -449,60 +618,84 @@
                 }
             );
 
+
         const controls =
             document.getElementById(
                 "controls"
             );
+
 
         const collapseButton =
             document.getElementById(
                 "collapseButton"
             );
 
+
         const deviceSelect =
             document.getElementById(
                 "deviceSelect"
             );
+
 
         const refreshButton =
             document.getElementById(
                 "refreshButton"
             );
 
+
         const startButton =
             document.getElementById(
                 "startButton"
             );
+
 
         const stopButton =
             document.getElementById(
                 "stopButton"
             );
 
+
         const rotateLeftButton =
             document.getElementById(
                 "rotateLeftButton"
             );
+
 
         const rotateRightButton =
             document.getElementById(
                 "rotateRightButton"
             );
 
+
+        const backgroundColorPicker =
+            document.getElementById(
+                "backgroundColorPicker"
+            );
+
+
+        const resetBackgroundButton =
+            document.getElementById(
+                "resetBackgroundButton"
+            );
+
+
         const fullscreenButton =
             document.getElementById(
                 "fullscreenButton"
             );
+
 
         const diagnostics =
             document.getElementById(
                 "diagnostics"
             );
 
+
         const message =
             document.getElementById(
                 "message"
             );
+
 
         const startup =
             document.getElementById(
@@ -521,6 +714,7 @@
                 "canvas"
             );
 
+
         const detectionContext =
             detectionCanvas.getContext(
                 "2d",
@@ -532,7 +726,7 @@
 
         /*
         ============================================================
-        State
+        Saved settings
         ============================================================
         */
 
@@ -540,47 +734,84 @@
             "iPadMirrorUVCDevice";
 
 
+        const SAVED_BACKGROUND_KEY =
+            "iPadMirrorBackgroundColor";
+
+
+        /*
+        ============================================================
+        Detection settings
+        ============================================================
+        */
+
         const DETECTION_WIDTH =
             320;
+
 
         const DETECTION_INTERVAL =
             500;
 
+
         const BLACK_THRESHOLD =
             24;
+
 
         const BLACK_COLUMN_RATIO =
             0.99;
 
 
+        /*
+        ============================================================
+        State
+        ============================================================
+        */
+
         let stream =
             null;
+
 
         let rotation =
             0;
 
+
         let permissionGranted =
             false;
+
 
         let controlsCollapsed =
             false;
 
+
         let rendering =
             false;
+
 
         let lastDetectionTime =
             0;
 
 
+        let viewerBackground =
+            "#000000";
+
+
         let activeRect = {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0
+
+            x:
+                0,
+
+            y:
+                0,
+
+            width:
+                0,
+
+            height:
+                0
         };
 
 
         const preferredDeviceWords = [
+
             "clariview",
             "capture",
             "usb video",
@@ -590,7 +821,83 @@
             "avermedia",
             "magewell",
             "video capture"
+
         ];
+
+
+        /*
+        ============================================================
+        Background
+        ============================================================
+        */
+
+        function applyBackgroundColor(
+            color,
+            save = true
+        ) {
+
+            viewerBackground =
+                color;
+
+
+            document.documentElement
+                .style
+                .setProperty(
+                    "--viewer-background",
+                    color
+                );
+
+
+            backgroundColorPicker.value =
+                color;
+
+
+            if (
+                save
+            ) {
+
+                localStorage.setItem(
+                    SAVED_BACKGROUND_KEY,
+                    color
+                );
+            }
+        }
+
+
+        function loadBackgroundColor() {
+
+            const savedColor =
+                localStorage.getItem(
+                    SAVED_BACKGROUND_KEY
+                );
+
+
+            if (
+                savedColor
+            ) {
+
+                applyBackgroundColor(
+                    savedColor,
+                    false
+                );
+
+            } else {
+
+                applyBackgroundColor(
+                    "#000000",
+                    false
+                );
+            }
+        }
+
+
+        function resetBackgroundColor() {
+
+            applyBackgroundColor(
+                "#000000",
+                true
+            );
+        }
 
 
         /*
@@ -614,7 +921,9 @@
             );
 
 
-            if (type) {
+            if (
+                type
+            ) {
 
                 message.classList.add(
                     type
@@ -668,7 +977,9 @@
 
         function checkSupport() {
 
-            if (!window.isSecureContext) {
+            if (
+                !window.isSecureContext
+            ) {
 
                 throw new Error(
                     "This page must be opened over HTTPS."
@@ -700,8 +1011,10 @@
         ) {
 
             const label =
-                (device.label || "")
-                    .toLowerCase();
+                (
+                    device.label ||
+                    ""
+                ).toLowerCase();
 
 
             let score =
@@ -744,13 +1057,16 @@
 
         /*
         ============================================================
-        Permission
+        Camera permission
         ============================================================
         */
 
         async function requestPermission() {
 
-            if (permissionGranted) {
+            if (
+                permissionGranted
+            ) {
+
                 return;
             }
 
@@ -763,8 +1079,12 @@
             const temporaryStream =
                 await navigator.mediaDevices
                     .getUserMedia({
-                        video: true,
-                        audio: false
+
+                        video:
+                            true,
+
+                        audio:
+                            false
                     });
 
 
@@ -783,7 +1103,7 @@
 
         /*
         ============================================================
-        Enumerate devices
+        Enumerate video devices
         ============================================================
         */
 
@@ -830,7 +1150,8 @@
 
 
             if (
-                videoDevices.length === 0
+                videoDevices.length ===
+                0
             ) {
 
                 const option =
@@ -871,7 +1192,10 @@
 
 
             videoDevices.forEach(
-                (device, index) => {
+                (
+                    device,
+                    index
+                ) => {
 
                     const option =
                         document.createElement(
@@ -923,7 +1247,10 @@
                 selectedDevice =
                     [...videoDevices]
                         .sort(
-                            (a, b) =>
+                            (
+                                a,
+                                b
+                            ) =>
                                 getDeviceScore(b) -
                                 getDeviceScore(a)
                         )[0];
@@ -949,14 +1276,20 @@
         function normalizeRotation() {
 
             rotation =
-                ((rotation % 360) + 360) %
+                (
+                    (
+                        rotation %
+                        360
+                    ) +
+                    360
+                ) %
                 360;
         }
 
 
         /*
         ============================================================
-        Reset active frame
+        Active capture rectangle
         ============================================================
         */
 
@@ -964,9 +1297,11 @@
 
             activeRect = {
 
-                x: 0,
+                x:
+                    0,
 
-                y: 0,
+                y:
+                    0,
 
                 width:
                     sourceVideo.videoWidth,
@@ -982,7 +1317,7 @@
 
         /*
         ============================================================
-        Black-column detection
+        Black sidebar detection
         ============================================================
         */
 
@@ -996,6 +1331,7 @@
             let darkPixels =
                 0;
 
+
             let pixelCount =
                 0;
 
@@ -1008,19 +1344,29 @@
 
                 const index =
                     (
-                        y * width +
+                        y *
+                        width +
                         x
-                    ) * 4;
+                    ) *
+                    4;
 
 
                 const r =
                     imageData[index];
 
+
                 const g =
-                    imageData[index + 1];
+                    imageData[
+                        index +
+                        1
+                    ];
+
 
                 const b =
-                    imageData[index + 2];
+                    imageData[
+                        index +
+                        2
+                    ];
 
 
                 if (
@@ -1040,7 +1386,8 @@
             return (
                 darkPixels /
                 pixelCount
-            ) >= BLACK_COLUMN_RATIO;
+            ) >=
+            BLACK_COLUMN_RATIO;
         }
 
 
@@ -1117,11 +1464,13 @@
 
 
             let right =
-                detectWidth - 1;
+                detectWidth -
+                1;
 
 
             while (
-                left < right &&
+                left <
+                    right &&
                 isBlackColumn(
                     pixels,
                     detectWidth,
@@ -1135,7 +1484,8 @@
 
 
             while (
-                right > left &&
+                right >
+                    left &&
                 isBlackColumn(
                     pixels,
                     detectWidth,
@@ -1149,11 +1499,10 @@
 
 
             /*
-            Add one detection pixel of safety back onto
-            each side.
+            Put one detection pixel back on each side.
 
-            At 1920 input with a 320px detection image,
-            this is about 6 source pixels per side.
+            With 1920px input and 320px detection width,
+            this is approximately 6 source pixels.
             */
 
             left =
@@ -1165,8 +1514,10 @@
 
             right =
                 Math.min(
-                    detectWidth - 1,
-                    right + 1
+                    detectWidth -
+                        1,
+                    right +
+                        1
                 );
 
 
@@ -1182,7 +1533,8 @@
 
             if (
                 detectedWidth <
-                detectWidth * 0.35
+                detectWidth *
+                    0.35
             ) {
 
                 return;
@@ -1200,7 +1552,8 @@
             const sourceRight =
                 Math.ceil(
                     (
-                        right + 1
+                        right +
+                        1
                     ) /
                     detectWidth *
                     videoWidth
@@ -1225,15 +1578,18 @@
 
 
             const changed =
+
                 Math.abs(
                     newRect.x -
                     activeRect.x
-                ) > 3 ||
+                ) >
+                3 ||
 
                 Math.abs(
                     newRect.width -
                     activeRect.width
-                ) > 6 ||
+                ) >
+                6 ||
 
                 newRect.height !==
                     activeRect.height;
@@ -1254,7 +1610,7 @@
 
         /*
         ============================================================
-        Canvas resolution
+        Canvas output resolution
         ============================================================
         */
 
@@ -1273,8 +1629,12 @@
 
 
             const quarterTurn =
-                rotation === 90 ||
-                rotation === 270;
+
+                rotation ===
+                    90 ||
+
+                rotation ===
+                    270;
 
 
             const outputWidth =
@@ -1317,15 +1677,12 @@
 
         /*
         ============================================================
-        Maximize canvas in browser
+        Maximize canvas inside browser
 
-        The complete detected image is ALWAYS visible.
+        Complete image always remains visible.
 
         Scaling UP is allowed.
         Scaling DOWN is allowed.
-
-        Whichever browser dimension becomes limiting determines
-        the final size.
         ============================================================
         */
 
@@ -1359,11 +1716,13 @@
 
             const scale =
                 Math.min(
+
                     availableWidth /
                         outputCanvas.width,
 
                     availableHeight /
                         outputCanvas.height
+
                 );
 
 
@@ -1384,7 +1743,7 @@
 
         /*
         ============================================================
-        Draw current frame
+        Draw current capture frame
         ============================================================
         */
 
@@ -1436,8 +1795,14 @@
             );
 
 
+            /*
+            The video itself fills the canvas.
+
+            The viewer background is visible outside the canvas.
+            */
+
             outputContext.fillStyle =
-                "#000";
+                viewerBackground;
 
 
             outputContext.fillRect(
@@ -1461,7 +1826,8 @@
 
 
                     outputContext.rotate(
-                        Math.PI / 2
+                        Math.PI /
+                        2
                     );
 
                     break;
@@ -1491,7 +1857,8 @@
 
 
                     outputContext.rotate(
-                        -Math.PI / 2
+                        -Math.PI /
+                        2
                     );
 
                     break;
@@ -1519,7 +1886,7 @@
 
         /*
         ============================================================
-        Rendering loop
+        Render loop
         ============================================================
         */
 
@@ -1768,21 +2135,25 @@
                     video: {
 
                         deviceId: {
+
                             exact:
                                 deviceId
                         },
 
                         width: {
+
                             ideal:
                                 1920
                         },
 
                         height: {
+
                             ideal:
                                 1080
                         },
 
                         frameRate: {
+
                             ideal:
                                 60,
 
@@ -1821,6 +2192,7 @@
                                 video: {
 
                                     deviceId: {
+
                                         exact:
                                             deviceId
                                     }
@@ -2110,6 +2482,24 @@
         );
 
 
+        backgroundColorPicker.addEventListener(
+            "input",
+            () => {
+
+                applyBackgroundColor(
+                    backgroundColorPicker.value,
+                    true
+                );
+            }
+        );
+
+
+        resetBackgroundButton.addEventListener(
+            "click",
+            resetBackgroundColor
+        );
+
+
         fullscreenButton.addEventListener(
             "click",
             toggleFullscreen
@@ -2134,7 +2524,7 @@
 
 
         /*
-        Re-maximize whenever the browser window changes size.
+        Re-maximize if the browser window changes size.
         */
 
         window.addEventListener(
@@ -2155,8 +2545,7 @@
 
 
         /*
-        Re-evaluate geometry if the source stream itself
-        changes dimensions.
+        Re-evaluate geometry if the source capture dimensions change.
         */
 
         sourceVideo.addEventListener(
@@ -2171,7 +2560,7 @@
 
 
         /*
-        Detect capture-device connection changes.
+        Capture-device plug/unplug.
         */
 
         if (
@@ -2214,6 +2603,9 @@
 
             try {
 
+                loadBackgroundColor();
+
+
                 checkSupport();
 
 
@@ -2250,4 +2642,5 @@
     </script>
 
 </body>
+
 </html>
