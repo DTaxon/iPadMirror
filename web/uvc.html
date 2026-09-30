@@ -52,8 +52,8 @@
         }
 
         /*
-        The source video is still needed for UVC capture,
-        but the user never sees it directly.
+        Source UVC video is hidden.
+        The canvas is what the user actually sees.
         */
         #sourceVideo {
             position: fixed;
@@ -69,11 +69,11 @@
             pointer-events: none;
         }
 
-        /*
-        The canvas is the actual visible output.
-        */
         #outputCanvas {
             display: block;
+
+            margin: 0;
+            padding: 0;
 
             background: #000;
         }
@@ -174,6 +174,7 @@
 
         #collapseButton {
             min-width: 38px;
+
             padding-left: 10px;
             padding-right: 10px;
 
@@ -384,6 +385,7 @@
         <button
             id="rotateLeftButton"
             type="button"
+            title="Rotate counterclockwise"
         >
             ↺ 90°
         </button>
@@ -391,16 +393,9 @@
         <button
             id="rotateRightButton"
             type="button"
+            title="Rotate clockwise"
         >
             ↻ 90°
-        </button>
-
-        <button
-            id="fitButton"
-            type="button"
-            title="Return to native size or smaller"
-        >
-            Fit
         </button>
 
         <button
@@ -494,11 +489,6 @@
                 "rotateRightButton"
             );
 
-        const fitButton =
-            document.getElementById(
-                "fitButton"
-            );
-
         const fullscreenButton =
             document.getElementById(
                 "fullscreenButton"
@@ -523,9 +513,6 @@
         /*
         ============================================================
         Detection canvas
-
-        This is a small off-screen copy used only for detecting
-        uniform black HDMI sidebars.
         ============================================================
         */
 
@@ -553,19 +540,6 @@
             "iPadMirrorUVCDevice";
 
 
-        /*
-        Maximum visible gap between the rendered image and the
-        browser edge at the limiting dimension.
-
-        Two pixels on each side.
-        */
-        const VIEWPORT_PADDING =
-            4;
-
-
-        /*
-        HDMI black-bar detection settings.
-        */
         const DETECTION_WIDTH =
             320;
 
@@ -585,12 +559,6 @@
         let rotation =
             0;
 
-        /*
-        Start in maximized mode.
-        */
-        let fillMode =
-            true;
-
         let permissionGranted =
             false;
 
@@ -604,10 +572,6 @@
             0;
 
 
-        /*
-        Rectangle of the actual iPad picture inside the
-        UVC frame.
-        */
         let activeRect = {
             x: 0,
             y: 0,
@@ -727,7 +691,7 @@
 
         /*
         ============================================================
-        Device selection
+        Device scoring
         ============================================================
         */
 
@@ -778,6 +742,12 @@
         }
 
 
+        /*
+        ============================================================
+        Permission
+        ============================================================
+        */
+
         async function requestPermission() {
 
             if (permissionGranted) {
@@ -810,6 +780,12 @@
                 true;
         }
 
+
+        /*
+        ============================================================
+        Enumerate devices
+        ============================================================
+        */
 
         async function refreshDevices(
             requestCameraPermission = false
@@ -854,8 +830,7 @@
 
 
             if (
-                videoDevices.length ===
-                0
+                videoDevices.length === 0
             ) {
 
                 const option =
@@ -866,6 +841,7 @@
 
                 option.value =
                     "";
+
 
                 option.textContent =
                     "No video devices found";
@@ -980,17 +956,21 @@
 
         /*
         ============================================================
-        Reset crop to complete UVC frame
+        Reset active frame
         ============================================================
         */
 
         function resetActiveRect() {
 
             activeRect = {
+
                 x: 0,
+
                 y: 0,
+
                 width:
                     sourceVideo.videoWidth,
+
                 height:
                     sourceVideo.videoHeight
             };
@@ -1002,8 +982,7 @@
 
         /*
         ============================================================
-        Determine whether one detection-column is effectively part
-        of a uniform HDMI black bar.
+        Black-column detection
         ============================================================
         */
 
@@ -1067,11 +1046,7 @@
 
         /*
         ============================================================
-        Detect uniform left/right HDMI bars.
-
-        We deliberately do NOT automatically crop top/bottom.
-        This makes the detection much safer when an iPad app itself
-        uses a dark header/footer.
+        Detect uniform HDMI sidebars
         ============================================================
         */
 
@@ -1079,6 +1054,7 @@
 
             const videoWidth =
                 sourceVideo.videoWidth;
+
 
             const videoHeight =
                 sourceVideo.videoHeight;
@@ -1111,6 +1087,7 @@
             detectionCanvas.width =
                 detectWidth;
 
+
             detectionCanvas.height =
                 detectHeight;
 
@@ -1137,6 +1114,7 @@
 
             let left =
                 0;
+
 
             let right =
                 detectWidth - 1;
@@ -1171,10 +1149,11 @@
 
 
             /*
-            Expand one detection pixel back into the black region.
+            Add one detection pixel of safety back onto
+            each side.
 
-            At 1920 input / 320 detection resolution, this is roughly
-            six source pixels of safety on each side.
+            At 1920 input with a 320px detection image,
+            this is about 6 source pixels per side.
             */
 
             left =
@@ -1198,11 +1177,7 @@
 
 
             /*
-            Reject obviously implausible detection results.
-
-            A portrait iPad can legitimately occupy around 40% of
-            a landscape HDMI frame, so the lower bound needs to be
-            conservative.
+            Reject implausibly narrow detections.
             */
 
             if (
@@ -1233,6 +1208,7 @@
 
 
             const newRect = {
+
                 x:
                     sourceLeft,
 
@@ -1248,20 +1224,17 @@
             };
 
 
-            /*
-            Prevent tiny detection fluctuations from continuously
-            resizing the canvas.
-            */
-
             const changed =
                 Math.abs(
                     newRect.x -
                     activeRect.x
                 ) > 3 ||
+
                 Math.abs(
                     newRect.width -
                     activeRect.width
                 ) > 6 ||
+
                 newRect.height !==
                     activeRect.height;
 
@@ -1282,12 +1255,6 @@
         /*
         ============================================================
         Canvas resolution
-
-        This is the important part.
-
-        The canvas dimensions follow the actual active iPad picture.
-
-        90° / 270° swaps the dimensions.
         ============================================================
         */
 
@@ -1350,14 +1317,15 @@
 
         /*
         ============================================================
-        Size the visible canvas inside the browser.
+        Maximize canvas in browser
 
-        Fill:
-            Scale UP or DOWN as much as possible while keeping the
-            complete iPad screen visible.
+        The complete detected image is ALWAYS visible.
 
-        Fit:
-            Same, but never enlarge above 1:1 source resolution.
+        Scaling UP is allowed.
+        Scaling DOWN is allowed.
+
+        Whichever browser dimension becomes limiting determines
+        the final size.
         ============================================================
         */
 
@@ -1373,22 +1341,23 @@
 
 
             const availableWidth =
-                Math.max(
-                    stage.clientWidth -
-                        VIEWPORT_PADDING,
-                    1
-                );
+                stage.clientWidth;
 
 
             const availableHeight =
-                Math.max(
-                    stage.clientHeight -
-                        VIEWPORT_PADDING,
-                    1
-                );
+                stage.clientHeight;
 
 
-            const maximumScale =
+            if (
+                !availableWidth ||
+                !availableHeight
+            ) {
+
+                return;
+            }
+
+
+            const scale =
                 Math.min(
                     availableWidth /
                         outputCanvas.width,
@@ -1396,15 +1365,6 @@
                     availableHeight /
                         outputCanvas.height
                 );
-
-
-            const scale =
-                fillMode
-                    ? maximumScale
-                    : Math.min(
-                        maximumScale,
-                        1
-                    );
 
 
             outputCanvas.style.width =
@@ -1424,7 +1384,7 @@
 
         /*
         ============================================================
-        Draw current UVC frame to output canvas
+        Draw current frame
         ============================================================
         */
 
@@ -1442,11 +1402,14 @@
             const sx =
                 activeRect.x;
 
+
             const sy =
                 activeRect.y;
 
+
             const sw =
                 activeRect.width;
+
 
             const sh =
                 activeRect.height;
@@ -1454,6 +1417,7 @@
 
             const cw =
                 outputCanvas.width;
+
 
             const ch =
                 outputCanvas.height;
@@ -1495,6 +1459,7 @@
                         0
                     );
 
+
                     outputContext.rotate(
                         Math.PI / 2
                     );
@@ -1509,6 +1474,7 @@
                         ch
                     );
 
+
                     outputContext.rotate(
                         Math.PI
                     );
@@ -1522,6 +1488,7 @@
                         0,
                         ch
                     );
+
 
                     outputContext.rotate(
                         -Math.PI / 2
@@ -1795,7 +1762,8 @@
 
                 const constraints = {
 
-                    audio: false,
+                    audio:
+                        false,
 
                     video: {
 
@@ -1833,7 +1801,9 @@
                                 constraints
                             );
 
-                } catch (error) {
+                } catch (
+                    error
+                ) {
 
                     console.warn(
                         "Preferred mode failed. Retrying with device defaults.",
@@ -1869,11 +1839,6 @@
                 resetActiveRect();
 
 
-                /*
-                Perform an immediate trim before the first visible
-                frames, rather than waiting 500 ms.
-                */
-
                 detectActiveRect();
 
 
@@ -1908,7 +1873,8 @@
 
 
                 const track =
-                    stream.getVideoTracks()[0];
+                    stream
+                        .getVideoTracks()[0];
 
 
                 track.addEventListener(
@@ -2012,7 +1978,7 @@
 
         /*
         ============================================================
-        Manual rotation
+        Rotation
         ============================================================
         */
 
@@ -2023,6 +1989,7 @@
 
 
             normalizeRotation();
+
 
             updateOutputGeometry();
         }
@@ -2036,35 +2003,8 @@
 
             normalizeRotation();
 
+
             updateOutputGeometry();
-        }
-
-
-        /*
-        ============================================================
-        Fit / Fill
-        ============================================================
-        */
-
-        function toggleFit() {
-
-            fillMode =
-                !fillMode;
-
-
-            fitButton.textContent =
-                fillMode
-                    ? "Fit"
-                    : "Fill";
-
-
-            fitButton.title =
-                fillMode
-                    ? "Return to native size or smaller"
-                    : "Maximize while keeping the complete screen visible";
-
-
-            updateCanvasDisplaySize();
         }
 
 
@@ -2170,12 +2110,6 @@
         );
 
 
-        fitButton.addEventListener(
-            "click",
-            toggleFit
-        );
-
-
         fullscreenButton.addEventListener(
             "click",
             toggleFullscreen
@@ -2199,6 +2133,10 @@
         );
 
 
+        /*
+        Re-maximize whenever the browser window changes size.
+        */
+
         window.addEventListener(
             "resize",
             updateCanvasDisplaySize
@@ -2216,6 +2154,11 @@
         );
 
 
+        /*
+        Re-evaluate geometry if the source stream itself
+        changes dimensions.
+        */
+
         sourceVideo.addEventListener(
             "resize",
             () => {
@@ -2226,6 +2169,10 @@
             }
         );
 
+
+        /*
+        Detect capture-device connection changes.
+        */
 
         if (
             navigator.mediaDevices &&
@@ -2259,7 +2206,7 @@
 
         /*
         ============================================================
-        Initialization
+        Initialize
         ============================================================
         */
 
