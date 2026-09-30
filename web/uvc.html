@@ -91,18 +91,39 @@
             -webkit-backdrop-filter: blur(12px);
 
             transition:
-                opacity 0.25s ease,
-                transform 0.25s ease;
+                width 0.2s ease,
+                left 0.2s ease,
+                top 0.2s ease,
+                transform 0.2s ease,
+                padding 0.2s ease;
         }
 
-        #controls.hidden {
-            opacity: 0;
+        #controls.collapsed {
+            top: 12px;
+            left: 12px;
 
-            transform:
-                translateX(-50%)
-                translateY(-140%);
+            width: auto;
+            min-width: 0;
 
-            pointer-events: none;
+            padding: 6px;
+
+            transform: none;
+        }
+
+        #controls.collapsed > *:not(#collapseButton) {
+            display: none;
+        }
+
+        #controls.collapsed #collapseButton {
+            display: block;
+
+            width: 38px;
+            min-width: 38px;
+            height: 38px;
+
+            padding: 0;
+
+            font-size: 18px;
         }
 
         select,
@@ -136,6 +157,15 @@
         button:disabled {
             opacity: 0.45;
             cursor: default;
+        }
+
+        #collapseButton {
+            min-width: 38px;
+
+            padding-left: 10px;
+            padding-right: 10px;
+
+            font-size: 17px;
         }
 
         #startButton {
@@ -237,18 +267,19 @@
         }
 
         @media (max-width: 800px) {
-            #controls {
+            #controls:not(.collapsed) {
                 justify-content: flex-start;
             }
 
-            select {
+            #controls:not(.collapsed) select {
                 width: 100%;
                 max-width: none;
             }
 
-            #diagnostics {
+            #controls:not(.collapsed) #diagnostics {
                 width: 100%;
                 margin-left: 0;
+
                 text-align: center;
             }
         }
@@ -258,31 +289,33 @@
 <body>
 
     <div id="stage">
-
         <video
             id="video"
             autoplay
             playsinline
             muted
         ></video>
-
     </div>
 
     <div id="startup">
-
         <div id="startupContent">
-
             <h1>iPadMirror</h1>
 
             <p>
                 Connect the UVC capture device and click Start Capture.
             </p>
-
         </div>
-
     </div>
 
     <div id="controls">
+
+        <button
+            id="collapseButton"
+            type="button"
+            title="Hide controls"
+        >
+            ▲
+        </button>
 
         <select
             id="deviceSelect"
@@ -361,6 +394,12 @@
         const video =
             document.getElementById("video");
 
+        const controls =
+            document.getElementById("controls");
+
+        const collapseButton =
+            document.getElementById("collapseButton");
+
         const deviceSelect =
             document.getElementById("deviceSelect");
 
@@ -405,6 +444,8 @@
 
         let permissionGranted = false;
 
+        let controlsCollapsed = false;
+
         const preferredDeviceWords = [
             "clariview",
             "capture",
@@ -425,7 +466,6 @@
         */
 
         function setMessage(text, type = "") {
-
             message.textContent = text;
 
             message.classList.remove(
@@ -441,14 +481,39 @@
 
         /*
         ------------------------------------------------------------
+        Controls
+        ------------------------------------------------------------
+        */
+
+        function toggleControls() {
+            controlsCollapsed =
+                !controlsCollapsed;
+
+            controls.classList.toggle(
+                "collapsed",
+                controlsCollapsed
+            );
+
+            collapseButton.textContent =
+                controlsCollapsed
+                    ? "▼"
+                    : "▲";
+
+            collapseButton.title =
+                controlsCollapsed
+                    ? "Show controls"
+                    : "Hide controls";
+        }
+
+
+        /*
+        ------------------------------------------------------------
         Check browser support
         ------------------------------------------------------------
         */
 
         function checkSupport() {
-
             if (!window.isSecureContext) {
-
                 throw new Error(
                     "This page must be opened over HTTPS."
                 );
@@ -459,7 +524,6 @@
                 !navigator.mediaDevices.getUserMedia ||
                 !navigator.mediaDevices.enumerateDevices
             ) {
-
                 throw new Error(
                     "This browser does not support camera capture."
                 );
@@ -474,7 +538,6 @@
         */
 
         function getDeviceScore(device) {
-
             const label =
                 (device.label || "").toLowerCase();
 
@@ -485,13 +548,11 @@
                 i < preferredDeviceWords.length;
                 i++
             ) {
-
                 if (
                     label.includes(
                         preferredDeviceWords[i]
                     )
                 ) {
-
                     score +=
                         100 -
                         i;
@@ -504,7 +565,6 @@
                 label.includes("front camera") ||
                 label.includes("webcam")
             ) {
-
                 score -= 50;
             }
 
@@ -515,14 +575,10 @@
         /*
         ------------------------------------------------------------
         Request initial camera permission
-
-        Device labels generally become available after permission
-        has been granted to the site.
         ------------------------------------------------------------
         */
 
         async function requestPermission() {
-
             if (permissionGranted) {
                 return;
             }
@@ -539,7 +595,10 @@
 
             temporaryStream
                 .getTracks()
-                .forEach(track => track.stop());
+                .forEach(
+                    track =>
+                        track.stop()
+                );
 
             permissionGranted = true;
         }
@@ -554,7 +613,6 @@
         async function refreshDevices(
             requestCameraPermission = false
         ) {
-
             checkSupport();
 
             const previousSelection =
@@ -566,7 +624,6 @@
                 );
 
             if (requestCameraPermission) {
-
                 await requestPermission();
             }
 
@@ -584,7 +641,6 @@
             deviceSelect.innerHTML = "";
 
             if (videoDevices.length === 0) {
-
                 const option =
                     document.createElement(
                         "option"
@@ -613,7 +669,6 @@
 
             videoDevices.forEach(
                 (device, index) => {
-
                     const option =
                         document.createElement(
                             "option"
@@ -634,11 +689,6 @@
 
             let selectedDevice = null;
 
-
-            /*
-            Prefer current selection.
-            */
-
             selectedDevice =
                 videoDevices.find(
                     device =>
@@ -646,13 +696,7 @@
                         previousSelection
                 );
 
-
-            /*
-            Then try saved selection.
-            */
-
             if (!selectedDevice) {
-
                 selectedDevice =
                     videoDevices.find(
                         device =>
@@ -661,14 +705,7 @@
                     );
             }
 
-
-            /*
-            Otherwise choose the device whose name most strongly
-            resembles a capture card.
-            */
-
             if (!selectedDevice) {
-
                 const sortedDevices =
                     [...videoDevices]
                         .sort(
@@ -681,13 +718,10 @@
                     sortedDevices[0];
             }
 
-
             if (selectedDevice) {
-
                 deviceSelect.value =
                     selectedDevice.deviceId;
             }
-
 
             setMessage(
                 `${videoDevices.length} video device` +
@@ -705,9 +739,7 @@
         function stopCapture(
             updateMessage = true
         ) {
-
             if (stream) {
-
                 stream
                     .getTracks()
                     .forEach(
@@ -731,7 +763,6 @@
                 "No active video";
 
             if (updateMessage) {
-
                 setMessage(
                     "Capture stopped."
                 );
@@ -741,14 +772,12 @@
 
         /*
         ------------------------------------------------------------
-        Open the selected capture device
+        Open selected capture device
         ------------------------------------------------------------
         */
 
         async function startCapture() {
-
             try {
-
                 checkSupport();
 
                 startButton.disabled =
@@ -758,48 +787,27 @@
                     "Preparing video devices..."
                 );
 
-
-                /*
-                Request permission and get labelled devices.
-                */
-
                 await refreshDevices(true);
-
 
                 const deviceId =
                     deviceSelect.value;
 
-
                 if (!deviceId) {
-
                     throw new Error(
                         "No video device is selected."
                     );
                 }
 
-
                 stopCapture(false);
-
 
                 setMessage(
                     "Starting capture..."
                 );
 
-
-                /*
-                First request our preferred operating mode.
-
-                "ideal" tells the browser/device to negotiate the
-                closest mode it supports rather than failing merely
-                because exactly 1080p60 is unavailable.
-                */
-
                 const preferredConstraints = {
-
                     audio: false,
 
                     video: {
-
                         deviceId: {
                             exact: deviceId
                         },
@@ -819,9 +827,7 @@
                     }
                 };
 
-
                 try {
-
                     stream =
                         await navigator.mediaDevices
                             .getUserMedia(
@@ -829,12 +835,6 @@
                             );
 
                 } catch (error) {
-
-                    /*
-                    Some capture devices have unusual mode tables.
-                    Retry using only the exact device selection.
-                    */
-
                     console.warn(
                         "Preferred capture mode failed. " +
                         "Retrying with device defaults.",
@@ -844,11 +844,9 @@
                     stream =
                         await navigator.mediaDevices
                             .getUserMedia({
-
                                 audio: false,
 
                                 video: {
-
                                     deviceId: {
                                         exact: deviceId
                                     }
@@ -856,33 +854,26 @@
                             });
                 }
 
-
                 video.srcObject =
                     stream;
 
-
                 await video.play();
-
 
                 const track =
                     stream.getVideoTracks()[0];
 
-
                 const settings =
                     track.getSettings();
-
 
                 const width =
                     settings.width ||
                     video.videoWidth ||
                     "?";
 
-
                 const height =
                     settings.height ||
                     video.videoHeight ||
                     "?";
-
 
                 const fps =
                     settings.frameRate
@@ -891,22 +882,18 @@
                         )
                         : "?";
 
-
                 diagnostics.textContent =
                     `${track.label || "Video Capture"} ` +
                     `• ${width}×${height} ` +
                     `• ${fps} fps`;
-
 
                 localStorage.setItem(
                     SAVED_DEVICE_KEY,
                     deviceId
                 );
 
-
                 startup.style.display =
                     "none";
-
 
                 startButton.disabled =
                     true;
@@ -914,17 +901,14 @@
                 stopButton.disabled =
                     false;
 
-
                 setMessage(
                     "Wired capture is live.",
                     "live"
                 );
 
-
                 track.addEventListener(
                     "ended",
                     () => {
-
                         stream = null;
 
                         video.srcObject =
@@ -950,7 +934,6 @@
                 );
 
             } catch (error) {
-
                 console.error(error);
 
                 startButton.disabled =
@@ -971,56 +954,43 @@
         */
 
         function showCaptureError(error) {
-
             let text =
                 error.message ||
                 String(error);
 
-
             switch (error.name) {
-
                 case "NotAllowedError":
-
                     text =
                         "Camera access was denied. " +
                         "Allow camera access for this site in the browser.";
 
                     break;
 
-
                 case "NotFoundError":
-
                     text =
                         "No compatible video capture device was found.";
 
                     break;
 
-
                 case "NotReadableError":
-
                     text =
                         "The capture device exists but Windows could not open it. " +
                         "Close any other program using the device and try again.";
 
                     break;
 
-
                 case "OverconstrainedError":
-
                     text =
                         "The selected video device could not satisfy the requested video mode.";
 
                     break;
 
-
                 case "SecurityError":
-
                     text =
                         "The browser or computer security policy blocked camera access.";
 
                     break;
             }
-
 
             setMessage(
                 text,
@@ -1036,29 +1006,22 @@
         */
 
         function normalizeRotation() {
-
             rotation =
                 ((rotation % 360) + 360) %
                 360;
         }
 
-
         function applyRotation() {
-
             normalizeRotation();
-
 
             const quarterTurn =
                 rotation === 90 ||
                 rotation === 270;
 
-
             video.style.transform =
                 `rotate(${rotation}deg)`;
 
-
             if (quarterTurn) {
-
                 video.style.width =
                     "100vh";
 
@@ -1066,7 +1029,6 @@
                     "100vw";
 
             } else {
-
                 video.style.width =
                     "100vw";
 
@@ -1083,16 +1045,13 @@
         */
 
         function toggleFit() {
-
             fillMode =
                 !fillMode;
-
 
             video.style.objectFit =
                 fillMode
                     ? "cover"
                     : "contain";
-
 
             fitButton.textContent =
                 fillMode
@@ -1108,23 +1067,18 @@
         */
 
         async function toggleFullscreen() {
-
             try {
-
                 if (!document.fullscreenElement) {
-
                     await document
                         .documentElement
                         .requestFullscreen();
 
                 } else {
-
                     await document
                         .exitFullscreen();
                 }
 
             } catch (error) {
-
                 console.error(error);
 
                 setMessage(
@@ -1141,16 +1095,18 @@
         ------------------------------------------------------------
         */
 
+        collapseButton.addEventListener(
+            "click",
+            toggleControls
+        );
+
         refreshButton.addEventListener(
             "click",
             async () => {
-
                 try {
-
                     await refreshDevices(true);
 
                 } catch (error) {
-
                     console.error(error);
 
                     showCaptureError(error);
@@ -1158,46 +1114,38 @@
             }
         );
 
-
         startButton.addEventListener(
             "click",
             startCapture
         );
-
 
         stopButton.addEventListener(
             "click",
             () => stopCapture(true)
         );
 
-
         rotateLeftButton.addEventListener(
             "click",
             () => {
-
                 rotation -= 90;
 
                 applyRotation();
             }
         );
 
-
         rotateRightButton.addEventListener(
             "click",
             () => {
-
                 rotation += 90;
 
                 applyRotation();
             }
         );
 
-
         fitButton.addEventListener(
             "click",
             toggleFit
         );
-
 
         fullscreenButton.addEventListener(
             "click",
@@ -1207,16 +1155,14 @@
 
         /*
         ------------------------------------------------------------
-        Keep preferred device when manually selected
+        Remember selected capture device
         ------------------------------------------------------------
         */
 
         deviceSelect.addEventListener(
             "change",
             () => {
-
                 if (deviceSelect.value) {
-
                     localStorage.setItem(
                         SAVED_DEVICE_KEY,
                         deviceSelect.value
@@ -1237,18 +1183,14 @@
             "addEventListener" in
                 navigator.mediaDevices
         ) {
-
             navigator.mediaDevices
                 .addEventListener(
                     "devicechange",
                     async () => {
-
                         try {
-
                             await refreshDevices(false);
 
                         } catch (error) {
-
                             console.error(error);
                         }
                     }
@@ -1263,9 +1205,7 @@
         */
 
         async function initialize() {
-
             try {
-
                 checkSupport();
 
                 applyRotation();
@@ -1277,7 +1217,6 @@
                 );
 
             } catch (error) {
-
                 console.error(error);
 
                 startButton.disabled =
@@ -1289,7 +1228,6 @@
                 showCaptureError(error);
             }
         }
-
 
         initialize();
 
