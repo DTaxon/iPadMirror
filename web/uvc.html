@@ -903,10 +903,12 @@
                     : videoHeight;
 
 
+            const fitPadding = 4;
+
             const fitScale =
                 Math.min(
-                    stageWidth / rotatedWidth,
-                    stageHeight / rotatedHeight
+                    (stageWidth - fitPadding) / rotatedWidth,
+                    (stageHeight - fitPadding) / rotatedHeight
                 );
 
 
