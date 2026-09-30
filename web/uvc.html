@@ -854,104 +854,202 @@
                     }
             
             
-                    function updateVideoLayout() {
-            
-                normalizeRotation();
-            
-            
-                const videoWidth =
-                    video.videoWidth;
-            
-            
-                const videoHeight =
-                    video.videoHeight;
-            
-            
-                const stageWidth =
-                    stage.clientWidth;
-            
-            
-                const stageHeight =
-                    stage.clientHeight;
-            
-            
-                if (
-                    !videoWidth ||
-                    !videoHeight ||
-                    !stageWidth ||
-                    !stageHeight
-                ) {
-                    return;
-                }
-            
-            
-                const quarterTurn =
-                    rotation === 90 ||
-                    rotation === 270;
-            
-            
-                const rotatedWidth =
-                    quarterTurn
-                        ? videoHeight
-                        : videoWidth;
-            
-            
-                const rotatedHeight =
-                    quarterTurn
-                        ? videoWidth
-                        : videoHeight;
-            
-            
-                /*
-                Leave a tiny margin so browser sub-pixel rounding
-                cannot push the image outside the viewport.
-                */
-                const fitPadding = 4;
-            
-            
-                /*
-                Maximum scale that still keeps the COMPLETE image
-                visible inside the browser window.
-                */
-                const availableScale =
-                    Math.min(
-                        (stageWidth - fitPadding) / rotatedWidth,
-                        (stageHeight - fitPadding) / rotatedHeight
-                    );
-            
-            
-                /*
-                Fit:
-                    Never enlarge above the video's native size.
-            
-                Fill:
-                    Scale up OR down to use as much of the browser
-                    window as possible while still showing the
-                    complete iPad screen.
-                */
-                const scale =
-                    fillMode
-                        ? availableScale
-                        : Math.min(
-                            availableScale,
-                            1
-                        );
-            
-            
-                video.style.width =
-                    `${videoWidth}px`;
-            
-            
-                video.style.height =
-                    `${videoHeight}px`;
-            
-            
-                video.style.transform =
-                    `translate(-50%, -50%) ` +
-                    `rotate(${rotation}deg) ` +
-                    `scale(${scale})`;
-            }
+         function updateVideoLayout() {
 
+    normalizeRotation();
+
+
+    const videoWidth =
+        video.videoWidth;
+
+    const videoHeight =
+        video.videoHeight;
+
+    const stageWidth =
+        stage.clientWidth;
+
+    const stageHeight =
+        stage.clientHeight;
+
+
+    if (
+        !videoWidth ||
+        !videoHeight ||
+        !stageWidth ||
+        !stageHeight
+    ) {
+        return;
+    }
+
+
+    /*
+    ------------------------------------------------------------
+    Crop the HDMI/UVC frame to the centered iPad display.
+
+    The visible iPad in your screenshot is approximately 3:4
+    in portrait orientation.
+
+    We retain the complete iPad screen and remove only the
+    black HDMI padding around it.
+    ------------------------------------------------------------
+    */
+
+    const ipadAspect =
+        3 / 4;
+
+
+    let cropWidth;
+    let cropHeight;
+
+
+    if (
+        videoWidth / videoHeight >
+        ipadAspect
+    ) {
+
+        /*
+        HDMI frame is wider than the iPad.
+        Crop the left and right black bars.
+        */
+
+        cropHeight =
+            videoHeight;
+
+        cropWidth =
+            cropHeight *
+            ipadAspect;
+
+    } else {
+
+        /*
+        HDMI frame is taller than the iPad.
+        Crop top and bottom.
+        */
+
+        cropWidth =
+            videoWidth;
+
+        cropHeight =
+            cropWidth /
+            ipadAspect;
+    }
+
+
+    const cropLeft =
+        (videoWidth - cropWidth) / 2;
+
+    const cropRight =
+        cropLeft;
+
+    const cropTop =
+        (videoHeight - cropHeight) / 2;
+
+    const cropBottom =
+        cropTop;
+
+
+    /*
+    Convert crop amounts to percentages for CSS clip-path.
+    */
+
+    const cropLeftPercent =
+        cropLeft /
+        videoWidth *
+        100;
+
+    const cropRightPercent =
+        cropRight /
+        videoWidth *
+        100;
+
+    const cropTopPercent =
+        cropTop /
+        videoHeight *
+        100;
+
+    const cropBottomPercent =
+        cropBottom /
+        videoHeight *
+        100;
+
+
+    video.style.clipPath =
+        `inset(` +
+        `${cropTopPercent}% ` +
+        `${cropRightPercent}% ` +
+        `${cropBottomPercent}% ` +
+        `${cropLeftPercent}%` +
+        `)`;
+
+
+    /*
+    ------------------------------------------------------------
+    Account for manual rotation.
+    ------------------------------------------------------------
+    */
+
+    const quarterTurn =
+        rotation === 90 ||
+        rotation === 270;
+
+
+    const visibleWidth =
+        quarterTurn
+            ? cropHeight
+            : cropWidth;
+
+
+    const visibleHeight =
+        quarterTurn
+            ? cropWidth
+            : cropHeight;
+
+
+    /*
+    Small safety margin prevents browser rounding from
+    clipping an outer pixel.
+    */
+
+    const padding =
+        4;
+
+
+    /*
+    Always maximize the COMPLETE iPad display.
+
+    Scaling UP is allowed.
+    Scaling DOWN is allowed.
+    Cropping of the actual iPad screen is not allowed.
+    */
+
+    const scale =
+        Math.min(
+            (stageWidth - padding) /
+                visibleWidth,
+
+            (stageHeight - padding) /
+                visibleHeight
+        );
+
+
+    /*
+    Keep the video element at its real source resolution.
+    clip-path removes the HDMI padding.
+    transform sizes the remaining iPad display.
+    */
+
+    video.style.width =
+        `${videoWidth}px`;
+
+    video.style.height =
+        `${videoHeight}px`;
+
+
+    video.style.transform =
+        `translate(-50%, -50%) ` +
+        `rotate(${rotation}deg) ` +
+        `scale(${scale})`;
+}
 
         /*
         ------------------------------------------------------------
