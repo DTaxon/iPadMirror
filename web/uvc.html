@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>iPadMirror - Wired</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+
+            background: #000;
+            color: #fff;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
+        }
+
+        #stage {
+            position: fixed;
+            inset: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #000;
+            overflow: hidden;
+        }
+
+        #video {
+            display: block;
+
+            width: 100vw;
+            height: 100vh;
+
+            object-fit: contain;
+            transform-origin: center center;
+
+            background: #000;
+        }
+
+        #controls {
+            position: fixed;
+
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+
+            z-index: 10;
+
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+
+            gap: 8px;
+
+            width: min(1100px, calc(100vw - 24px));
+
+            padding: 10px;
+
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 12px;
+
+            background: rgba(20, 20, 20, 0.90);
+
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+
+            transition:
+                opacity 0.25s ease,
+                transform 0.25s ease;
+        }
+
+        #controls.hidden {
+            opacity: 0;
+
+            transform:
+                translateX(-50%)
+                translateY(-140%);
+
+            pointer-events: none;
+        }
+
+        select,
+        button {
+            min-height: 38px;
+
+            padding: 7px 12px;
+
+            border: 1px solid #555;
+            border-radius: 7px;
+
+            background: #262626;
+            color: #fff;
+
+            font-size: 14px;
+        }
+
+        select {
+            min-width: 260px;
+            max-width: 420px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #383838;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        #startButton {
+            background: #176b36;
+            border-color: #26884c;
+        }
+
+        #startButton:hover {
+            background: #1d8142;
+        }
+
+        #stopButton {
+            background: #702828;
+            border-color: #8a3434;
+        }
+
+        #stopButton:hover {
+            background: #853030;
+        }
+
+        #message {
+            position: fixed;
+
+            left: 50%;
+            bottom: 18px;
+
+            transform: translateX(-50%);
+
+            z-index: 10;
+
+            max-width: calc(100vw - 30px);
+
+            padding: 8px 14px;
+
+            border-radius: 8px;
+
+            background: rgba(20, 20, 20, 0.85);
+
+            color: #ddd;
+
+            font-size: 13px;
+            text-align: center;
+
+            pointer-events: none;
+        }
+
+        #message.live {
+            color: #8ee6a8;
+        }
+
+        #message.error {
+            color: #ff9696;
+        }
+
+        #startup {
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 5;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            pointer-events: none;
+        }
+
+        #startupContent {
+            padding: 30px;
+
+            color: #aaa;
+
+            text-align: center;
+        }
+
+        #startupContent h1 {
+            margin: 0 0 8px 0;
+
+            color: #fff;
+
+            font-size: 32px;
+            font-weight: 500;
+        }
+
+        #startupContent p {
+            margin: 0;
+
+            font-size: 15px;
+        }
+
+        #diagnostics {
+            margin-left: 4px;
+
+            color: #aaa;
+
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 800px) {
+            #controls {
+                justify-content: flex-start;
+            }
+
+            select {
+                width: 100%;
+                max-width: none;
+            }
+
+            #diagnostics {
+                width: 100%;
+                margin-left: 0;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="stage">
+
+        <video
+            id="video"
+            autoplay
+            playsinline
+            muted
+        ></video>
+
+    </div>
+
+    <div id="startup">
+
+        <div id="startupContent">
+
+            <h1>iPadMirror</h1>
+
+            <p>
+                Connect the UVC capture device and click Start Capture.
+            </p>
+
+        </div>
+
+    </div>
+
+    <div id="controls">
+
+        <select
+            id="deviceSelect"
+            aria-label="Video capture device"
+        >
+            <option value="">
+                Loading video devices...
+            </option>
+        </select>
+
+        <button
+            id="refreshButton"
+            type="button"
+        >
+            Refresh
+        </button>
+
+        <button
+            id="startButton"
+            type="button"
+        >
+            Start Capture
+        </button>
+
+        <button
+            id="stopButton"
+            type="button"
+            disabled
+        >
+            Stop
+        </button>
+
+        <button
+            id="rotateLeftButton"
+            type="button"
+            title="Rotate counterclockwise"
+        >
+            ↺ 90°
+        </button>
+
+        <button
+            id="rotateRightButton"
+            type="button"
+            title="Rotate clockwise"
+        >
+            ↻ 90°
+        </button>
+
+        <button
+            id="fitButton"
+            type="button"
+        >
+            Fit
+        </button>
+
+        <button
+            id="fullscreenButton"
+            type="button"
+        >
+            Fullscreen
+        </button>
+
+        <div id="diagnostics">
+            No active video
+        </div>
+
+    </div>
+
+    <div id="message">
+        Waiting for capture device.
+    </div>
+
+    <script>
+        "use strict";
+
+        const video =
+            document.getElementById("video");
+
+        const deviceSelect =
+            document.getElementById("deviceSelect");
+
+        const refreshButton =
+            document.getElementById("refreshButton");
+
+        const startButton =
+            document.getElementById("startButton");
+
+        const stopButton =
+            document.getElementById("stopButton");
+
+        const rotateLeftButton =
+            document.getElementById("rotateLeftButton");
+
+        const rotateRightButton =
+            document.getElementById("rotateRightButton");
+
+        const fitButton =
+            document.getElementById("fitButton");
+
+        const fullscreenButton =
+            document.getElementById("fullscreenButton");
+
+        const diagnostics =
+            document.getElementById("diagnostics");
+
+        const message =
+            document.getElementById("message");
+
+        const startup =
+            document.getElementById("startup");
+
+        const SAVED_DEVICE_KEY =
+            "iPadMirrorUVCDevice";
+
+        let stream = null;
+
+        let rotation = 0;
+
+        let fillMode = false;
+
+        let permissionGranted = false;
+
+        const preferredDeviceWords = [
+            "clariview",
+            "capture",
+            "usb video",
+            "uvc",
+            "hdmi",
+            "cam link",
+            "avermedia",
+            "magewell",
+            "video capture"
+        ];
+
+
+        /*
+        ------------------------------------------------------------
+        Status
+        ------------------------------------------------------------
+        */
+
+        function setMessage(text, type = "") {
+
+            message.textContent = text;
+
+            message.classList.remove(
+                "live",
+                "error"
+            );
+
+            if (type) {
+                message.classList.add(type);
+            }
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Check browser support
+        ------------------------------------------------------------
+        */
+
+        function checkSupport() {
+
+            if (!window.isSecureContext) {
+
+                throw new Error(
+                    "This page must be opened over HTTPS."
+                );
+            }
+
+            if (
+                !navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia ||
+                !navigator.mediaDevices.enumerateDevices
+            ) {
+
+                throw new Error(
+                    "This browser does not support camera capture."
+                );
+            }
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Device scoring
+        ------------------------------------------------------------
+        */
+
+        function getDeviceScore(device) {
+
+            const label =
+                (device.label || "").toLowerCase();
+
+            let score = 0;
+
+            for (
+                let i = 0;
+                i < preferredDeviceWords.length;
+                i++
+            ) {
+
+                if (
+                    label.includes(
+                        preferredDeviceWords[i]
+                    )
+                ) {
+
+                    score +=
+                        100 -
+                        i;
+                }
+            }
+
+            if (
+                label.includes("integrated") ||
+                label.includes("facetime") ||
+                label.includes("front camera") ||
+                label.includes("webcam")
+            ) {
+
+                score -= 50;
+            }
+
+            return score;
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Request initial camera permission
+
+        Device labels generally become available after permission
+        has been granted to the site.
+        ------------------------------------------------------------
+        */
+
+        async function requestPermission() {
+
+            if (permissionGranted) {
+                return;
+            }
+
+            setMessage(
+                "Requesting camera permission..."
+            );
+
+            const temporaryStream =
+                await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+
+            temporaryStream
+                .getTracks()
+                .forEach(track => track.stop());
+
+            permissionGranted = true;
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Enumerate video devices
+        ------------------------------------------------------------
+        */
+
+        async function refreshDevices(
+            requestCameraPermission = false
+        ) {
+
+            checkSupport();
+
+            const previousSelection =
+                deviceSelect.value;
+
+            const savedSelection =
+                localStorage.getItem(
+                    SAVED_DEVICE_KEY
+                );
+
+            if (requestCameraPermission) {
+
+                await requestPermission();
+            }
+
+            const devices =
+                await navigator.mediaDevices
+                    .enumerateDevices();
+
+            const videoDevices =
+                devices.filter(
+                    device =>
+                        device.kind ===
+                        "videoinput"
+                );
+
+            deviceSelect.innerHTML = "";
+
+            if (videoDevices.length === 0) {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value = "";
+
+                option.textContent =
+                    "No video devices found";
+
+                deviceSelect.appendChild(
+                    option
+                );
+
+                startButton.disabled = true;
+
+                setMessage(
+                    "No Windows video capture devices were found.",
+                    "error"
+                );
+
+                return;
+            }
+
+            startButton.disabled = false;
+
+            videoDevices.forEach(
+                (device, index) => {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        device.deviceId;
+
+                    option.textContent =
+                        device.label ||
+                        `Camera ${index + 1}`;
+
+                    deviceSelect.appendChild(
+                        option
+                    );
+                }
+            );
+
+            let selectedDevice = null;
+
+
+            /*
+            Prefer current selection.
+            */
+
+            selectedDevice =
+                videoDevices.find(
+                    device =>
+                        device.deviceId ===
+                        previousSelection
+                );
+
+
+            /*
+            Then try saved selection.
+            */
+
+            if (!selectedDevice) {
+
+                selectedDevice =
+                    videoDevices.find(
+                        device =>
+                            device.deviceId ===
+                            savedSelection
+                    );
+            }
+
+
+            /*
+            Otherwise choose the device whose name most strongly
+            resembles a capture card.
+            */
+
+            if (!selectedDevice) {
+
+                const sortedDevices =
+                    [...videoDevices]
+                        .sort(
+                            (a, b) =>
+                                getDeviceScore(b) -
+                                getDeviceScore(a)
+                        );
+
+                selectedDevice =
+                    sortedDevices[0];
+            }
+
+
+            if (selectedDevice) {
+
+                deviceSelect.value =
+                    selectedDevice.deviceId;
+            }
+
+
+            setMessage(
+                `${videoDevices.length} video device` +
+                `${videoDevices.length === 1 ? "" : "s"} found.`
+            );
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Stop current capture
+        ------------------------------------------------------------
+        */
+
+        function stopCapture(
+            updateMessage = true
+        ) {
+
+            if (stream) {
+
+                stream
+                    .getTracks()
+                    .forEach(
+                        track =>
+                            track.stop()
+                    );
+            }
+
+            stream = null;
+
+            video.srcObject = null;
+
+            startup.style.display =
+                "flex";
+
+            startButton.disabled = false;
+
+            stopButton.disabled = true;
+
+            diagnostics.textContent =
+                "No active video";
+
+            if (updateMessage) {
+
+                setMessage(
+                    "Capture stopped."
+                );
+            }
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Open the selected capture device
+        ------------------------------------------------------------
+        */
+
+        async function startCapture() {
+
+            try {
+
+                checkSupport();
+
+                startButton.disabled =
+                    true;
+
+                setMessage(
+                    "Preparing video devices..."
+                );
+
+
+                /*
+                Request permission and get labelled devices.
+                */
+
+                await refreshDevices(true);
+
+
+                const deviceId =
+                    deviceSelect.value;
+
+
+                if (!deviceId) {
+
+                    throw new Error(
+                        "No video device is selected."
+                    );
+                }
+
+
+                stopCapture(false);
+
+
+                setMessage(
+                    "Starting capture..."
+                );
+
+
+                /*
+                First request our preferred operating mode.
+
+                "ideal" tells the browser/device to negotiate the
+                closest mode it supports rather than failing merely
+                because exactly 1080p60 is unavailable.
+                */
+
+                const preferredConstraints = {
+
+                    audio: false,
+
+                    video: {
+
+                        deviceId: {
+                            exact: deviceId
+                        },
+
+                        width: {
+                            ideal: 1920
+                        },
+
+                        height: {
+                            ideal: 1080
+                        },
+
+                        frameRate: {
+                            ideal: 60,
+                            max: 60
+                        }
+                    }
+                };
+
+
+                try {
+
+                    stream =
+                        await navigator.mediaDevices
+                            .getUserMedia(
+                                preferredConstraints
+                            );
+
+                } catch (error) {
+
+                    /*
+                    Some capture devices have unusual mode tables.
+                    Retry using only the exact device selection.
+                    */
+
+                    console.warn(
+                        "Preferred capture mode failed. " +
+                        "Retrying with device defaults.",
+                        error
+                    );
+
+                    stream =
+                        await navigator.mediaDevices
+                            .getUserMedia({
+
+                                audio: false,
+
+                                video: {
+
+                                    deviceId: {
+                                        exact: deviceId
+                                    }
+                                }
+                            });
+                }
+
+
+                video.srcObject =
+                    stream;
+
+
+                await video.play();
+
+
+                const track =
+                    stream.getVideoTracks()[0];
+
+
+                const settings =
+                    track.getSettings();
+
+
+                const width =
+                    settings.width ||
+                    video.videoWidth ||
+                    "?";
+
+
+                const height =
+                    settings.height ||
+                    video.videoHeight ||
+                    "?";
+
+
+                const fps =
+                    settings.frameRate
+                        ? Math.round(
+                            settings.frameRate
+                        )
+                        : "?";
+
+
+                diagnostics.textContent =
+                    `${track.label || "Video Capture"} ` +
+                    `• ${width}×${height} ` +
+                    `• ${fps} fps`;
+
+
+                localStorage.setItem(
+                    SAVED_DEVICE_KEY,
+                    deviceId
+                );
+
+
+                startup.style.display =
+                    "none";
+
+
+                startButton.disabled =
+                    true;
+
+                stopButton.disabled =
+                    false;
+
+
+                setMessage(
+                    "Wired capture is live.",
+                    "live"
+                );
+
+
+                track.addEventListener(
+                    "ended",
+                    () => {
+
+                        stream = null;
+
+                        video.srcObject =
+                            null;
+
+                        startup.style.display =
+                            "flex";
+
+                        startButton.disabled =
+                            false;
+
+                        stopButton.disabled =
+                            true;
+
+                        diagnostics.textContent =
+                            "Capture device disconnected";
+
+                        setMessage(
+                            "Capture device disconnected.",
+                            "error"
+                        );
+                    }
+                );
+
+            } catch (error) {
+
+                console.error(error);
+
+                startButton.disabled =
+                    false;
+
+                stopButton.disabled =
+                    true;
+
+                showCaptureError(error);
+            }
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Friendly capture errors
+        ------------------------------------------------------------
+        */
+
+        function showCaptureError(error) {
+
+            let text =
+                error.message ||
+                String(error);
+
+
+            switch (error.name) {
+
+                case "NotAllowedError":
+
+                    text =
+                        "Camera access was denied. " +
+                        "Allow camera access for this site in the browser.";
+
+                    break;
+
+
+                case "NotFoundError":
+
+                    text =
+                        "No compatible video capture device was found.";
+
+                    break;
+
+
+                case "NotReadableError":
+
+                    text =
+                        "The capture device exists but Windows could not open it. " +
+                        "Close any other program using the device and try again.";
+
+                    break;
+
+
+                case "OverconstrainedError":
+
+                    text =
+                        "The selected video device could not satisfy the requested video mode.";
+
+                    break;
+
+
+                case "SecurityError":
+
+                    text =
+                        "The browser or computer security policy blocked camera access.";
+
+                    break;
+            }
+
+
+            setMessage(
+                text,
+                "error"
+            );
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Rotation
+        ------------------------------------------------------------
+        */
+
+        function normalizeRotation() {
+
+            rotation =
+                ((rotation % 360) + 360) %
+                360;
+        }
+
+
+        function applyRotation() {
+
+            normalizeRotation();
+
+
+            const quarterTurn =
+                rotation === 90 ||
+                rotation === 270;
+
+
+            video.style.transform =
+                `rotate(${rotation}deg)`;
+
+
+            if (quarterTurn) {
+
+                video.style.width =
+                    "100vh";
+
+                video.style.height =
+                    "100vw";
+
+            } else {
+
+                video.style.width =
+                    "100vw";
+
+                video.style.height =
+                    "100vh";
+            }
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Fit / Fill
+        ------------------------------------------------------------
+        */
+
+        function toggleFit() {
+
+            fillMode =
+                !fillMode;
+
+
+            video.style.objectFit =
+                fillMode
+                    ? "cover"
+                    : "contain";
+
+
+            fitButton.textContent =
+                fillMode
+                    ? "Fill"
+                    : "Fit";
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Fullscreen
+        ------------------------------------------------------------
+        */
+
+        async function toggleFullscreen() {
+
+            try {
+
+                if (!document.fullscreenElement) {
+
+                    await document
+                        .documentElement
+                        .requestFullscreen();
+
+                } else {
+
+                    await document
+                        .exitFullscreen();
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                setMessage(
+                    "Fullscreen mode was blocked by the browser.",
+                    "error"
+                );
+            }
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Button events
+        ------------------------------------------------------------
+        */
+
+        refreshButton.addEventListener(
+            "click",
+            async () => {
+
+                try {
+
+                    await refreshDevices(true);
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    showCaptureError(error);
+                }
+            }
+        );
+
+
+        startButton.addEventListener(
+            "click",
+            startCapture
+        );
+
+
+        stopButton.addEventListener(
+            "click",
+            () => stopCapture(true)
+        );
+
+
+        rotateLeftButton.addEventListener(
+            "click",
+            () => {
+
+                rotation -= 90;
+
+                applyRotation();
+            }
+        );
+
+
+        rotateRightButton.addEventListener(
+            "click",
+            () => {
+
+                rotation += 90;
+
+                applyRotation();
+            }
+        );
+
+
+        fitButton.addEventListener(
+            "click",
+            toggleFit
+        );
+
+
+        fullscreenButton.addEventListener(
+            "click",
+            toggleFullscreen
+        );
+
+
+        /*
+        ------------------------------------------------------------
+        Keep preferred device when manually selected
+        ------------------------------------------------------------
+        */
+
+        deviceSelect.addEventListener(
+            "change",
+            () => {
+
+                if (deviceSelect.value) {
+
+                    localStorage.setItem(
+                        SAVED_DEVICE_KEY,
+                        deviceSelect.value
+                    );
+                }
+            }
+        );
+
+
+        /*
+        ------------------------------------------------------------
+        Device plug/unplug detection
+        ------------------------------------------------------------
+        */
+
+        if (
+            navigator.mediaDevices &&
+            "addEventListener" in
+                navigator.mediaDevices
+        ) {
+
+            navigator.mediaDevices
+                .addEventListener(
+                    "devicechange",
+                    async () => {
+
+                        try {
+
+                            await refreshDevices(false);
+
+                        } catch (error) {
+
+                            console.error(error);
+                        }
+                    }
+                );
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        Initial load
+        ------------------------------------------------------------
+        */
+
+        async function initialize() {
+
+            try {
+
+                checkSupport();
+
+                applyRotation();
+
+                await refreshDevices(false);
+
+                setMessage(
+                    "Connect the capture card and click Start Capture."
+                );
+
+            } catch (error) {
+
+                console.error(error);
+
+                startButton.disabled =
+                    true;
+
+                refreshButton.disabled =
+                    true;
+
+                showCaptureError(error);
+            }
+        }
+
+
+        initialize();
+
+    </script>
+
+</body>
+</html>
