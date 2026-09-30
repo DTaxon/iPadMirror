@@ -42,29 +42,40 @@
             position: fixed;
             inset: 0;
 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
             overflow: hidden;
+
             background: #000;
         }
 
-        #video {
-            position: absolute;
+        /*
+        The source video is still needed for UVC capture,
+        but the user never sees it directly.
+        */
+        #sourceVideo {
+            position: fixed;
 
-            left: 50%;
-            top: 50%;
+            left: -10000px;
+            top: -10000px;
 
+            width: 1px;
+            height: 1px;
+
+            opacity: 0;
+
+            pointer-events: none;
+        }
+
+        /*
+        The canvas is the actual visible output.
+        */
+        #outputCanvas {
             display: block;
 
-            width: auto;
-            height: auto;
-
-            max-width: none;
-            max-height: none;
-
             background: #000;
-
-            transform-origin: center center;
-
-            will-change: transform;
         }
 
         #controls {
@@ -84,7 +95,10 @@
 
             gap: 8px;
 
-            width: min(1100px, calc(100vw - 24px));
+            width: min(
+                1100px,
+                calc(100vw - 24px)
+            );
 
             padding: 10px;
 
@@ -95,13 +109,6 @@
 
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-
-            transition:
-                width 0.2s ease,
-                left 0.2s ease,
-                top 0.2s ease,
-                transform 0.2s ease,
-                padding 0.2s ease;
         }
 
         #controls.collapsed {
@@ -167,7 +174,6 @@
 
         #collapseButton {
             min-width: 38px;
-
             padding-left: 10px;
             padding-right: 10px;
 
@@ -190,6 +196,15 @@
 
         #stopButton:hover {
             background: #853030;
+        }
+
+        #diagnostics {
+            margin-left: 4px;
+
+            color: #aaa;
+
+            font-size: 12px;
+            white-space: nowrap;
         }
 
         #message {
@@ -270,15 +285,6 @@
             font-size: 15px;
         }
 
-        #diagnostics {
-            margin-left: 4px;
-
-            color: #aaa;
-
-            font-size: 12px;
-            white-space: nowrap;
-        }
-
         @media (max-width: 800px) {
 
             #controls:not(.collapsed) {
@@ -306,11 +312,15 @@
     <div id="stage">
 
         <video
-            id="video"
+            id="sourceVideo"
             autoplay
             playsinline
             muted
         ></video>
+
+        <canvas
+            id="outputCanvas"
+        ></canvas>
 
     </div>
 
@@ -374,7 +384,6 @@
         <button
             id="rotateLeftButton"
             type="button"
-            title="Rotate counterclockwise"
         >
             ↺ 90°
         </button>
@@ -382,7 +391,6 @@
         <button
             id="rotateRightButton"
             type="button"
-            title="Rotate clockwise"
         >
             ↻ 90°
         </button>
@@ -390,9 +398,9 @@
         <button
             id="fitButton"
             type="button"
-            title="Scale video to maximum available window size"
+            title="Return to native size or smaller"
         >
-            Fill
+            Fit
         </button>
 
         <button
@@ -412,81 +420,200 @@
         Waiting for capture device.
     </div>
 
+
     <script>
         "use strict";
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
         Elements
-        ------------------------------------------------------------
+        ============================================================
         */
 
         const stage =
-            document.getElementById("stage");
+            document.getElementById(
+                "stage"
+            );
 
-        const video =
-            document.getElementById("video");
+        const sourceVideo =
+            document.getElementById(
+                "sourceVideo"
+            );
+
+        const outputCanvas =
+            document.getElementById(
+                "outputCanvas"
+            );
+
+        const outputContext =
+            outputCanvas.getContext(
+                "2d",
+                {
+                    alpha: false
+                }
+            );
 
         const controls =
-            document.getElementById("controls");
+            document.getElementById(
+                "controls"
+            );
 
         const collapseButton =
-            document.getElementById("collapseButton");
+            document.getElementById(
+                "collapseButton"
+            );
 
         const deviceSelect =
-            document.getElementById("deviceSelect");
+            document.getElementById(
+                "deviceSelect"
+            );
 
         const refreshButton =
-            document.getElementById("refreshButton");
+            document.getElementById(
+                "refreshButton"
+            );
 
         const startButton =
-            document.getElementById("startButton");
+            document.getElementById(
+                "startButton"
+            );
 
         const stopButton =
-            document.getElementById("stopButton");
+            document.getElementById(
+                "stopButton"
+            );
 
         const rotateLeftButton =
-            document.getElementById("rotateLeftButton");
+            document.getElementById(
+                "rotateLeftButton"
+            );
 
         const rotateRightButton =
-            document.getElementById("rotateRightButton");
+            document.getElementById(
+                "rotateRightButton"
+            );
 
         const fitButton =
-            document.getElementById("fitButton");
+            document.getElementById(
+                "fitButton"
+            );
 
         const fullscreenButton =
-            document.getElementById("fullscreenButton");
+            document.getElementById(
+                "fullscreenButton"
+            );
 
         const diagnostics =
-            document.getElementById("diagnostics");
+            document.getElementById(
+                "diagnostics"
+            );
 
         const message =
-            document.getElementById("message");
+            document.getElementById(
+                "message"
+            );
 
         const startup =
-            document.getElementById("startup");
+            document.getElementById(
+                "startup"
+            );
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
+        Detection canvas
+
+        This is a small off-screen copy used only for detecting
+        uniform black HDMI sidebars.
+        ============================================================
+        */
+
+        const detectionCanvas =
+            document.createElement(
+                "canvas"
+            );
+
+        const detectionContext =
+            detectionCanvas.getContext(
+                "2d",
+                {
+                    willReadFrequently: true
+                }
+            );
+
+
+        /*
+        ============================================================
         State
-        ------------------------------------------------------------
+        ============================================================
         */
 
         const SAVED_DEVICE_KEY =
             "iPadMirrorUVCDevice";
 
 
-        let stream = null;
+        /*
+        Maximum visible gap between the rendered image and the
+        browser edge at the limiting dimension.
 
-        let rotation = 0;
+        Two pixels on each side.
+        */
+        const VIEWPORT_PADDING =
+            4;
 
-        let fillMode = false;
 
-        let permissionGranted = false;
+        /*
+        HDMI black-bar detection settings.
+        */
+        const DETECTION_WIDTH =
+            320;
 
-        let controlsCollapsed = false;
+        const DETECTION_INTERVAL =
+            500;
+
+        const BLACK_THRESHOLD =
+            24;
+
+        const BLACK_COLUMN_RATIO =
+            0.99;
+
+
+        let stream =
+            null;
+
+        let rotation =
+            0;
+
+        /*
+        Start in maximized mode.
+        */
+        let fillMode =
+            true;
+
+        let permissionGranted =
+            false;
+
+        let controlsCollapsed =
+            false;
+
+        let rendering =
+            false;
+
+        let lastDetectionTime =
+            0;
+
+
+        /*
+        Rectangle of the actual iPad picture inside the
+        UVC frame.
+        */
+        let activeRect = {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0
+        };
 
 
         const preferredDeviceWords = [
@@ -503,12 +630,15 @@
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
         Status
-        ------------------------------------------------------------
+        ============================================================
         */
 
-        function setMessage(text, type = "") {
+        function setMessage(
+            text,
+            type = ""
+        ) {
 
             message.textContent =
                 text;
@@ -530,9 +660,9 @@
 
 
         /*
-        ------------------------------------------------------------
-        Collapse / expand controls
-        ------------------------------------------------------------
+        ============================================================
+        Controls
+        ============================================================
         */
 
         function toggleControls() {
@@ -567,9 +697,9 @@
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
         Browser support
-        ------------------------------------------------------------
+        ============================================================
         */
 
         function checkSupport() {
@@ -596,19 +726,22 @@
 
 
         /*
-        ------------------------------------------------------------
-        Device scoring
-        ------------------------------------------------------------
+        ============================================================
+        Device selection
+        ============================================================
         */
 
-        function getDeviceScore(device) {
+        function getDeviceScore(
+            device
+        ) {
 
             const label =
                 (device.label || "")
                     .toLowerCase();
 
 
-            let score = 0;
+            let score =
+                0;
 
 
             for (
@@ -636,19 +769,14 @@
                 label.includes("webcam")
             ) {
 
-                score -= 50;
+                score -=
+                    50;
             }
 
 
             return score;
         }
 
-
-        /*
-        ------------------------------------------------------------
-        Camera permission
-        ------------------------------------------------------------
-        */
 
         async function requestPermission() {
 
@@ -663,10 +791,11 @@
 
 
             const temporaryStream =
-                await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false
-                });
+                await navigator.mediaDevices
+                    .getUserMedia({
+                        video: true,
+                        audio: false
+                    });
 
 
             temporaryStream
@@ -681,12 +810,6 @@
                 true;
         }
 
-
-        /*
-        ------------------------------------------------------------
-        Enumerate devices
-        ------------------------------------------------------------
-        */
 
         async function refreshDevices(
             requestCameraPermission = false
@@ -705,7 +828,9 @@
                 );
 
 
-            if (requestCameraPermission) {
+            if (
+                requestCameraPermission
+            ) {
 
                 await requestPermission();
             }
@@ -724,10 +849,14 @@
                 );
 
 
-            deviceSelect.innerHTML = "";
+            deviceSelect.innerHTML =
+                "";
 
 
-            if (videoDevices.length === 0) {
+            if (
+                videoDevices.length ===
+                0
+            ) {
 
                 const option =
                     document.createElement(
@@ -735,8 +864,8 @@
                     );
 
 
-                option.value = "";
-
+                option.value =
+                    "";
 
                 option.textContent =
                     "No video devices found";
@@ -752,7 +881,7 @@
 
 
                 setMessage(
-                    "No Windows video capture devices were found.",
+                    "No video capture devices were found.",
                     "error"
                 );
 
@@ -798,7 +927,9 @@
                 );
 
 
-            if (!selectedDevice) {
+            if (
+                !selectedDevice
+            ) {
 
                 selectedDevice =
                     videoDevices.find(
@@ -809,40 +940,34 @@
             }
 
 
-            if (!selectedDevice) {
+            if (
+                !selectedDevice
+            ) {
 
-                const sortedDevices =
+                selectedDevice =
                     [...videoDevices]
                         .sort(
                             (a, b) =>
                                 getDeviceScore(b) -
                                 getDeviceScore(a)
-                        );
-
-
-                selectedDevice =
-                    sortedDevices[0];
+                        )[0];
             }
 
 
-            if (selectedDevice) {
+            if (
+                selectedDevice
+            ) {
 
                 deviceSelect.value =
                     selectedDevice.deviceId;
             }
-
-
-            setMessage(
-                `${videoDevices.length} video device` +
-                `${videoDevices.length === 1 ? "" : "s"} found.`
-            );
         }
 
 
         /*
-        ------------------------------------------------------------
-        Rotation normalization
-        ------------------------------------------------------------
+        ============================================================
+        Rotation
+        ============================================================
         */
 
         function normalizeRotation() {
@@ -854,175 +979,716 @@
 
 
         /*
-        ------------------------------------------------------------
-        Video sizing
-        ------------------------------------------------------------
-
-        No cropping is performed.
-
-        FIT:
-            - Complete video is always visible.
-            - Video may shrink.
-            - Video will not enlarge past native resolution.
-
-        FILL:
-            - Complete video is always visible.
-            - Video may shrink.
-            - Video may enlarge.
-            - Video uses as much of the window as possible.
-            - No content is cropped.
-
-        Rotation is accounted for before calculating scale.
-        ------------------------------------------------------------
+        ============================================================
+        Reset crop to complete UVC frame
+        ============================================================
         */
 
-        function updateVideoLayout() {
+        function resetActiveRect() {
 
-            normalizeRotation();
+            activeRect = {
+                x: 0,
+                y: 0,
+                width:
+                    sourceVideo.videoWidth,
+                height:
+                    sourceVideo.videoHeight
+            };
 
+
+            updateOutputGeometry();
+        }
+
+
+        /*
+        ============================================================
+        Determine whether one detection-column is effectively part
+        of a uniform HDMI black bar.
+        ============================================================
+        */
+
+        function isBlackColumn(
+            imageData,
+            width,
+            height,
+            x
+        ) {
+
+            let darkPixels =
+                0;
+
+            let pixelCount =
+                0;
+
+
+            for (
+                let y = 0;
+                y < height;
+                y += 2
+            ) {
+
+                const index =
+                    (
+                        y * width +
+                        x
+                    ) * 4;
+
+
+                const r =
+                    imageData[index];
+
+                const g =
+                    imageData[index + 1];
+
+                const b =
+                    imageData[index + 2];
+
+
+                if (
+                    r <= BLACK_THRESHOLD &&
+                    g <= BLACK_THRESHOLD &&
+                    b <= BLACK_THRESHOLD
+                ) {
+
+                    darkPixels++;
+                }
+
+
+                pixelCount++;
+            }
+
+
+            return (
+                darkPixels /
+                pixelCount
+            ) >= BLACK_COLUMN_RATIO;
+        }
+
+
+        /*
+        ============================================================
+        Detect uniform left/right HDMI bars.
+
+        We deliberately do NOT automatically crop top/bottom.
+        This makes the detection much safer when an iPad app itself
+        uses a dark header/footer.
+        ============================================================
+        */
+
+        function detectActiveRect() {
 
             const videoWidth =
-                video.videoWidth;
-
+                sourceVideo.videoWidth;
 
             const videoHeight =
-                video.videoHeight;
-
-
-            const stageWidth =
-                stage.clientWidth;
-
-
-            const stageHeight =
-                stage.clientHeight;
+                sourceVideo.videoHeight;
 
 
             if (
                 !videoWidth ||
-                !videoHeight ||
-                !stageWidth ||
-                !stageHeight
+                !videoHeight
             ) {
 
                 return;
             }
 
 
+            const detectWidth =
+                DETECTION_WIDTH;
+
+
+            const detectHeight =
+                Math.max(
+                    1,
+                    Math.round(
+                        detectWidth *
+                        videoHeight /
+                        videoWidth
+                    )
+                );
+
+
+            detectionCanvas.width =
+                detectWidth;
+
+            detectionCanvas.height =
+                detectHeight;
+
+
+            detectionContext.drawImage(
+                sourceVideo,
+                0,
+                0,
+                detectWidth,
+                detectHeight
+            );
+
+
+            const pixels =
+                detectionContext
+                    .getImageData(
+                        0,
+                        0,
+                        detectWidth,
+                        detectHeight
+                    )
+                    .data;
+
+
+            let left =
+                0;
+
+            let right =
+                detectWidth - 1;
+
+
+            while (
+                left < right &&
+                isBlackColumn(
+                    pixels,
+                    detectWidth,
+                    detectHeight,
+                    left
+                )
+            ) {
+
+                left++;
+            }
+
+
+            while (
+                right > left &&
+                isBlackColumn(
+                    pixels,
+                    detectWidth,
+                    detectHeight,
+                    right
+                )
+            ) {
+
+                right--;
+            }
+
+
             /*
-            Never crop the incoming UVC frame.
+            Expand one detection pixel back into the black region.
+
+            At 1920 input / 320 detection resolution, this is roughly
+            six source pixels of safety on each side.
             */
 
-            video.style.clipPath =
-                "none";
+            left =
+                Math.max(
+                    0,
+                    left - 1
+                );
+
+
+            right =
+                Math.min(
+                    detectWidth - 1,
+                    right + 1
+                );
+
+
+            const detectedWidth =
+                right -
+                left +
+                1;
 
 
             /*
-            A 90° or 270° rotation swaps the effective
-            display width and height.
+            Reject obviously implausible detection results.
+
+            A portrait iPad can legitimately occupy around 40% of
+            a landscape HDMI frame, so the lower bound needs to be
+            conservative.
             */
+
+            if (
+                detectedWidth <
+                detectWidth * 0.35
+            ) {
+
+                return;
+            }
+
+
+            const sourceLeft =
+                Math.floor(
+                    left /
+                    detectWidth *
+                    videoWidth
+                );
+
+
+            const sourceRight =
+                Math.ceil(
+                    (
+                        right + 1
+                    ) /
+                    detectWidth *
+                    videoWidth
+                );
+
+
+            const newRect = {
+                x:
+                    sourceLeft,
+
+                y:
+                    0,
+
+                width:
+                    sourceRight -
+                    sourceLeft,
+
+                height:
+                    videoHeight
+            };
+
+
+            /*
+            Prevent tiny detection fluctuations from continuously
+            resizing the canvas.
+            */
+
+            const changed =
+                Math.abs(
+                    newRect.x -
+                    activeRect.x
+                ) > 3 ||
+                Math.abs(
+                    newRect.width -
+                    activeRect.width
+                ) > 6 ||
+                newRect.height !==
+                    activeRect.height;
+
+
+            if (
+                changed
+            ) {
+
+                activeRect =
+                    newRect;
+
+
+                updateOutputGeometry();
+            }
+        }
+
+
+        /*
+        ============================================================
+        Canvas resolution
+
+        This is the important part.
+
+        The canvas dimensions follow the actual active iPad picture.
+
+        90° / 270° swaps the dimensions.
+        ============================================================
+        */
+
+        function updateOutputGeometry() {
+
+            normalizeRotation();
+
+
+            if (
+                !activeRect.width ||
+                !activeRect.height
+            ) {
+
+                return;
+            }
+
 
             const quarterTurn =
                 rotation === 90 ||
                 rotation === 270;
 
 
-            const displayWidth =
+            const outputWidth =
                 quarterTurn
-                    ? videoHeight
-                    : videoWidth;
+                    ? activeRect.height
+                    : activeRect.width;
 
 
-            const displayHeight =
+            const outputHeight =
                 quarterTurn
-                    ? videoWidth
-                    : videoHeight;
+                    ? activeRect.width
+                    : activeRect.height;
 
 
-            /*
-            Leave a tiny amount of clearance so browser
-            sub-pixel rounding cannot clip an outside edge.
-            */
+            if (
+                outputCanvas.width !==
+                outputWidth
+            ) {
 
-            const padding =
-                4;
+                outputCanvas.width =
+                    outputWidth;
+            }
+
+
+            if (
+                outputCanvas.height !==
+                outputHeight
+            ) {
+
+                outputCanvas.height =
+                    outputHeight;
+            }
+
+
+            updateCanvasDisplaySize();
+
+            updateDiagnostics();
+        }
+
+
+        /*
+        ============================================================
+        Size the visible canvas inside the browser.
+
+        Fill:
+            Scale UP or DOWN as much as possible while keeping the
+            complete iPad screen visible.
+
+        Fit:
+            Same, but never enlarge above 1:1 source resolution.
+        ============================================================
+        */
+
+        function updateCanvasDisplaySize() {
+
+            if (
+                !outputCanvas.width ||
+                !outputCanvas.height
+            ) {
+
+                return;
+            }
 
 
             const availableWidth =
                 Math.max(
-                    stageWidth - padding,
+                    stage.clientWidth -
+                        VIEWPORT_PADDING,
                     1
                 );
 
 
             const availableHeight =
                 Math.max(
-                    stageHeight - padding,
+                    stage.clientHeight -
+                        VIEWPORT_PADDING,
                     1
                 );
 
 
-            /*
-            Maximum scale that preserves the ENTIRE frame.
-            */
-
-            const availableScale =
+            const maximumScale =
                 Math.min(
                     availableWidth /
-                        displayWidth,
+                        outputCanvas.width,
 
                     availableHeight /
-                        displayHeight
+                        outputCanvas.height
                 );
 
 
-            /*
-            Fit:
-                Allow shrinking but not enlargement.
-
-            Fill:
-                Allow enlargement or shrinking.
-            */
-
             const scale =
                 fillMode
-                    ? availableScale
+                    ? maximumScale
                     : Math.min(
-                        availableScale,
+                        maximumScale,
                         1
                     );
 
 
-            /*
-            Keep the video element at the source resolution.
-            Transformation handles rotation and scaling.
-            */
-
-            video.style.width =
-                `${videoWidth}px`;
+            outputCanvas.style.width =
+                `${
+                    outputCanvas.width *
+                    scale
+                }px`;
 
 
-            video.style.height =
-                `${videoHeight}px`;
-
-
-            video.style.transform =
-                `translate(-50%, -50%) ` +
-                `rotate(${rotation}deg) ` +
-                `scale(${scale})`;
+            outputCanvas.style.height =
+                `${
+                    outputCanvas.height *
+                    scale
+                }px`;
         }
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
+        Draw current UVC frame to output canvas
+        ============================================================
+        */
+
+        function drawOutputFrame() {
+
+            if (
+                sourceVideo.readyState <
+                HTMLMediaElement.HAVE_CURRENT_DATA
+            ) {
+
+                return;
+            }
+
+
+            const sx =
+                activeRect.x;
+
+            const sy =
+                activeRect.y;
+
+            const sw =
+                activeRect.width;
+
+            const sh =
+                activeRect.height;
+
+
+            const cw =
+                outputCanvas.width;
+
+            const ch =
+                outputCanvas.height;
+
+
+            outputContext.save();
+
+
+            outputContext.setTransform(
+                1,
+                0,
+                0,
+                1,
+                0,
+                0
+            );
+
+
+            outputContext.fillStyle =
+                "#000";
+
+
+            outputContext.fillRect(
+                0,
+                0,
+                cw,
+                ch
+            );
+
+
+            switch (
+                rotation
+            ) {
+
+                case 90:
+
+                    outputContext.translate(
+                        cw,
+                        0
+                    );
+
+                    outputContext.rotate(
+                        Math.PI / 2
+                    );
+
+                    break;
+
+
+                case 180:
+
+                    outputContext.translate(
+                        cw,
+                        ch
+                    );
+
+                    outputContext.rotate(
+                        Math.PI
+                    );
+
+                    break;
+
+
+                case 270:
+
+                    outputContext.translate(
+                        0,
+                        ch
+                    );
+
+                    outputContext.rotate(
+                        -Math.PI / 2
+                    );
+
+                    break;
+            }
+
+
+            outputContext.drawImage(
+                sourceVideo,
+
+                sx,
+                sy,
+                sw,
+                sh,
+
+                0,
+                0,
+                sw,
+                sh
+            );
+
+
+            outputContext.restore();
+        }
+
+
+        /*
+        ============================================================
+        Rendering loop
+        ============================================================
+        */
+
+        function renderFrame(
+            timestamp
+        ) {
+
+            if (
+                !rendering
+            ) {
+
+                return;
+            }
+
+
+            if (
+                timestamp -
+                    lastDetectionTime >=
+                DETECTION_INTERVAL
+            ) {
+
+                lastDetectionTime =
+                    timestamp;
+
+
+                detectActiveRect();
+            }
+
+
+            drawOutputFrame();
+
+
+            requestAnimationFrame(
+                renderFrame
+            );
+        }
+
+
+        function startRendering() {
+
+            if (
+                rendering
+            ) {
+
+                return;
+            }
+
+
+            rendering =
+                true;
+
+
+            lastDetectionTime =
+                0;
+
+
+            requestAnimationFrame(
+                renderFrame
+            );
+        }
+
+
+        function stopRendering() {
+
+            rendering =
+                false;
+        }
+
+
+        /*
+        ============================================================
+        Diagnostics
+        ============================================================
+        */
+
+        function updateDiagnostics() {
+
+            if (
+                !stream
+            ) {
+
+                diagnostics.textContent =
+                    "No active video";
+
+                return;
+            }
+
+
+            const track =
+                stream
+                    .getVideoTracks()[0];
+
+
+            const inputWidth =
+                sourceVideo.videoWidth ||
+                "?";
+
+
+            const inputHeight =
+                sourceVideo.videoHeight ||
+                "?";
+
+
+            const outputWidth =
+                outputCanvas.width ||
+                "?";
+
+
+            const outputHeight =
+                outputCanvas.height ||
+                "?";
+
+
+            diagnostics.textContent =
+                `${track.label || "Video Capture"} ` +
+                `• Input ${inputWidth}×${inputHeight} ` +
+                `• View ${outputWidth}×${outputHeight}`;
+        }
+
+
+        /*
+        ============================================================
         Stop capture
-        ------------------------------------------------------------
+        ============================================================
         */
 
         function stopCapture(
             updateMessage = true
         ) {
 
-            if (stream) {
+            stopRendering();
+
+
+            if (
+                stream
+            ) {
 
                 stream
                     .getTracks()
@@ -1037,16 +1703,16 @@
                 null;
 
 
-            video.srcObject =
+            sourceVideo.srcObject =
                 null;
 
 
-            video.style.clipPath =
-                "none";
-
-
-            video.style.transform =
-                "translate(-50%, -50%)";
+            outputContext.clearRect(
+                0,
+                0,
+                outputCanvas.width,
+                outputCanvas.height
+            );
 
 
             startup.style.display =
@@ -1065,7 +1731,9 @@
                 "No active video";
 
 
-            if (updateMessage) {
+            if (
+                updateMessage
+            ) {
 
                 setMessage(
                     "Capture stopped."
@@ -1075,9 +1743,9 @@
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
         Start capture
-        ------------------------------------------------------------
+        ============================================================
         */
 
         async function startCapture() {
@@ -1096,14 +1764,18 @@
                 );
 
 
-                await refreshDevices(true);
+                await refreshDevices(
+                    true
+                );
 
 
                 const deviceId =
                     deviceSelect.value;
 
 
-                if (!deviceId) {
+                if (
+                    !deviceId
+                ) {
 
                     throw new Error(
                         "No video device is selected."
@@ -1111,7 +1783,9 @@
                 }
 
 
-                stopCapture(false);
+                stopCapture(
+                    false
+                );
 
 
                 setMessage(
@@ -1119,27 +1793,33 @@
                 );
 
 
-                const preferredConstraints = {
+                const constraints = {
 
                     audio: false,
 
                     video: {
 
                         deviceId: {
-                            exact: deviceId
+                            exact:
+                                deviceId
                         },
 
                         width: {
-                            ideal: 1920
+                            ideal:
+                                1920
                         },
 
                         height: {
-                            ideal: 1080
+                            ideal:
+                                1080
                         },
 
                         frameRate: {
-                            ideal: 60,
-                            max: 60
+                            ideal:
+                                60,
+
+                            max:
+                                60
                         }
                     }
                 };
@@ -1150,14 +1830,13 @@
                     stream =
                         await navigator.mediaDevices
                             .getUserMedia(
-                                preferredConstraints
+                                constraints
                             );
 
                 } catch (error) {
 
                     console.warn(
-                        "Preferred capture mode failed. " +
-                        "Retrying with device defaults.",
+                        "Preferred mode failed. Retrying with device defaults.",
                         error
                     );
 
@@ -1166,66 +1845,39 @@
                         await navigator.mediaDevices
                             .getUserMedia({
 
-                                audio: false,
+                                audio:
+                                    false,
 
                                 video: {
 
                                     deviceId: {
-                                        exact: deviceId
+                                        exact:
+                                            deviceId
                                     }
                                 }
                             });
                 }
 
 
-                video.srcObject =
+                sourceVideo.srcObject =
                     stream;
 
 
-                await video.play();
+                await sourceVideo.play();
 
 
-                updateVideoLayout();
+                resetActiveRect();
 
 
-                const track =
-                    stream.getVideoTracks()[0];
+                /*
+                Perform an immediate trim before the first visible
+                frames, rather than waiting 500 ms.
+                */
+
+                detectActiveRect();
 
 
-                const settings =
-                    track.getSettings();
-
-
-                const width =
-                    settings.width ||
-                    video.videoWidth ||
-                    "?";
-
-
-                const height =
-                    settings.height ||
-                    video.videoHeight ||
-                    "?";
-
-
-                const fps =
-                    settings.frameRate
-                        ? Math.round(
-                            settings.frameRate
-                        )
-                        : "?";
-
-
-                diagnostics.textContent =
-                    `${track.label || "Video Capture"} ` +
-                    `• ${width}×${height} ` +
-                    `• ${fps} fps`;
-
-
-                localStorage.setItem(
-                    SAVED_DEVICE_KEY,
-                    deviceId
-                );
+                startRendering();
 
 
                 startup.style.display =
@@ -1240,38 +1892,32 @@
                     false;
 
 
+                localStorage.setItem(
+                    SAVED_DEVICE_KEY,
+                    deviceId
+                );
+
+
+                updateDiagnostics();
+
+
                 setMessage(
                     "Wired capture is live.",
                     "live"
                 );
 
 
+                const track =
+                    stream.getVideoTracks()[0];
+
+
                 track.addEventListener(
                     "ended",
                     () => {
 
-                        stream =
-                            null;
-
-
-                        video.srcObject =
-                            null;
-
-
-                        startup.style.display =
-                            "flex";
-
-
-                        startButton.disabled =
-                            false;
-
-
-                        stopButton.disabled =
-                            true;
-
-
-                        diagnostics.textContent =
-                            "Capture device disconnected";
+                        stopCapture(
+                            false
+                        );
 
 
                         setMessage(
@@ -1281,7 +1927,9 @@
                     }
                 );
 
-            } catch (error) {
+            } catch (
+                error
+            ) {
 
                 console.error(
                     error
@@ -1304,25 +1952,28 @@
 
 
         /*
-        ------------------------------------------------------------
-        Friendly capture errors
-        ------------------------------------------------------------
+        ============================================================
+        Errors
+        ============================================================
         */
 
-        function showCaptureError(error) {
+        function showCaptureError(
+            error
+        ) {
 
             let text =
                 error.message ||
                 String(error);
 
 
-            switch (error.name) {
+            switch (
+                error.name
+            ) {
 
                 case "NotAllowedError":
 
                     text =
-                        "Camera access was denied. " +
-                        "Allow camera access for this site in the browser.";
+                        "Camera access was denied. Allow camera access for this site.";
 
                     break;
 
@@ -1338,16 +1989,7 @@
                 case "NotReadableError":
 
                     text =
-                        "The capture device exists but Windows could not open it. " +
-                        "Close any other program using the device and try again.";
-
-                    break;
-
-
-                case "OverconstrainedError":
-
-                    text =
-                        "The selected video device could not satisfy the requested video mode.";
+                        "Windows found the capture device but could not open it.";
 
                     break;
 
@@ -1369,9 +2011,9 @@
 
 
         /*
-        ------------------------------------------------------------
-        Rotation
-        ------------------------------------------------------------
+        ============================================================
+        Manual rotation
+        ============================================================
         */
 
         function rotateLeft() {
@@ -1380,7 +2022,9 @@
                 90;
 
 
-            updateVideoLayout();
+            normalizeRotation();
+
+            updateOutputGeometry();
         }
 
 
@@ -1390,14 +2034,16 @@
                 90;
 
 
-            updateVideoLayout();
+            normalizeRotation();
+
+            updateOutputGeometry();
         }
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
         Fit / Fill
-        ------------------------------------------------------------
+        ============================================================
         */
 
         function toggleFit() {
@@ -1405,11 +2051,6 @@
             fillMode =
                 !fillMode;
 
-
-            /*
-            Button text indicates the mode clicking it
-            will switch TO.
-            */
 
             fitButton.textContent =
                 fillMode
@@ -1420,17 +2061,17 @@
             fitButton.title =
                 fillMode
                     ? "Return to native size or smaller"
-                    : "Maximize video while keeping the entire screen visible";
+                    : "Maximize while keeping the complete screen visible";
 
 
-            updateVideoLayout();
+            updateCanvasDisplaySize();
         }
 
 
         /*
-        ------------------------------------------------------------
+        ============================================================
         Fullscreen
-        ------------------------------------------------------------
+        ============================================================
         */
 
         async function toggleFullscreen() {
@@ -1451,7 +2092,9 @@
                         .exitFullscreen();
                 }
 
-            } catch (error) {
+            } catch (
+                error
+            ) {
 
                 console.error(
                     error
@@ -1467,9 +2110,9 @@
 
 
         /*
-        ------------------------------------------------------------
-        Buttons
-        ------------------------------------------------------------
+        ============================================================
+        Events
+        ============================================================
         */
 
         collapseButton.addEventListener(
@@ -1488,12 +2131,9 @@
                         true
                     );
 
-                } catch (error) {
-
-                    console.error(
-                        error
-                    );
-
+                } catch (
+                    error
+                ) {
 
                     showCaptureError(
                         error
@@ -1542,47 +2182,6 @@
         );
 
 
-        /*
-        ------------------------------------------------------------
-        Video sizing events
-        ------------------------------------------------------------
-        */
-
-        video.addEventListener(
-            "loadedmetadata",
-            updateVideoLayout
-        );
-
-
-        video.addEventListener(
-            "resize",
-            updateVideoLayout
-        );
-
-
-        window.addEventListener(
-            "resize",
-            updateVideoLayout
-        );
-
-
-        document.addEventListener(
-            "fullscreenchange",
-            () => {
-
-                requestAnimationFrame(
-                    updateVideoLayout
-                );
-            }
-        );
-
-
-        /*
-        ------------------------------------------------------------
-        Remember selected device
-        ------------------------------------------------------------
-        */
-
         deviceSelect.addEventListener(
             "change",
             () => {
@@ -1600,11 +2199,33 @@
         );
 
 
-        /*
-        ------------------------------------------------------------
-        Capture device plug / unplug
-        ------------------------------------------------------------
-        */
+        window.addEventListener(
+            "resize",
+            updateCanvasDisplaySize
+        );
+
+
+        document.addEventListener(
+            "fullscreenchange",
+            () => {
+
+                requestAnimationFrame(
+                    updateCanvasDisplaySize
+                );
+            }
+        );
+
+
+        sourceVideo.addEventListener(
+            "resize",
+            () => {
+
+                resetActiveRect();
+
+                detectActiveRect();
+            }
+        );
+
 
         if (
             navigator.mediaDevices &&
@@ -1623,7 +2244,9 @@
                                 false
                             );
 
-                        } catch (error) {
+                        } catch (
+                            error
+                        ) {
 
                             console.error(
                                 error
@@ -1635,9 +2258,9 @@
 
 
         /*
-        ------------------------------------------------------------
-        Initialize
-        ------------------------------------------------------------
+        ============================================================
+        Initialization
+        ============================================================
         */
 
         async function initialize() {
@@ -1656,12 +2279,9 @@
                     "Connect the capture card and click Start Capture."
                 );
 
-            } catch (error) {
-
-                console.error(
-                    error
-                );
-
+            } catch (
+                error
+            ) {
 
                 startButton.disabled =
                     true;
