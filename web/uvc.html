@@ -132,7 +132,6 @@
 
 
         #controls.collapsed {
-            top: 12px;
             left: 12px;
 
             width: auto;
@@ -428,7 +427,7 @@
 
         @media (max-height: 720px) {
 
-            #controls {
+            #controls:not(.collapsed) {
                 top: 8px;
                 bottom: 8px;
 
@@ -441,7 +440,7 @@
 
         @media (max-width: 500px) {
 
-            #controls {
+            #controls:not(.collapsed) {
                 width: min(
                     260px,
                     calc(100vw - 24px)
@@ -951,38 +950,147 @@
 
         /*
         ============================================================
-        Collapse controls
+        Controls
+
+        When collapsing, record the current on-screen location of
+        the collapse button first.
+
+        The collapsed toolbar is then positioned so the expand
+        button occupies exactly the same vertical location.
         ============================================================
         */
 
+        function setControlsCollapsed(
+            collapsed
+        ) {
+
+            if (
+                collapsed ===
+                controlsCollapsed
+            ) {
+
+                return;
+            }
+
+
+            if (
+                collapsed
+            ) {
+
+                /*
+                Capture the exact position of the arrow while the
+                toolbar is still expanded.
+                */
+
+                const buttonTop =
+                    collapseButton
+                        .getBoundingClientRect()
+                        .top;
+
+
+                /*
+                Apply collapsed layout.
+                */
+
+                controls.classList.add(
+                    "collapsed"
+                );
+
+
+                /*
+                The button sits inside the collapsed container.
+                offsetTop gives us its position relative to the
+                container, including the collapsed padding.
+                */
+
+                const buttonOffset =
+                    collapseButton.offsetTop;
+
+
+                /*
+                Move the collapsed container so the arrow returns
+                to exactly the same viewport Y position.
+                */
+
+                controls.style.top =
+                    `${
+                        buttonTop -
+                        buttonOffset
+                    }px`;
+
+
+                controls.style.bottom =
+                    "auto";
+
+
+                controls.style.transform =
+                    "none";
+
+
+                message.classList.add(
+                    "collapsed"
+                );
+
+
+                collapseButton.textContent =
+                    "▶";
+
+
+                collapseButton.title =
+                    "Show controls";
+
+
+                controlsCollapsed =
+                    true;
+
+            } else {
+
+                /*
+                Return positioning control to the normal expanded
+                CSS rules.
+                */
+
+                controls.classList.remove(
+                    "collapsed"
+                );
+
+
+                controls.style.top =
+                    "";
+
+
+                controls.style.bottom =
+                    "";
+
+
+                controls.style.transform =
+                    "";
+
+
+                message.classList.remove(
+                    "collapsed"
+                );
+
+
+                collapseButton.textContent =
+                    "◀";
+
+
+                collapseButton.title =
+                    "Hide controls";
+
+
+                controlsCollapsed =
+                    false;
+            }
+        }
+
+
         function toggleControls() {
 
-            controlsCollapsed =
-                !controlsCollapsed;
-
-
-            controls.classList.toggle(
-                "collapsed",
-                controlsCollapsed
+            setControlsCollapsed(
+                !controlsCollapsed
             );
-
-
-            message.classList.toggle(
-                "collapsed",
-                controlsCollapsed
-            );
-
-
-            collapseButton.textContent =
-                controlsCollapsed
-                    ? "▶"
-                    : "◀";
-
-
-            collapseButton.title =
-                controlsCollapsed
-                    ? "Show controls"
-                    : "Hide controls";
         }
 
 
@@ -1488,7 +1596,7 @@
         ============================================================
         Detect active picture rectangle
 
-        Removes uniform black HDMI borders from:
+        Removes black HDMI borders from:
             left
             right
             top
@@ -1646,9 +1754,6 @@
 
             /*
             Add one detection pixel back on all four sides.
-
-            At 1920x1080 using a 320x180 detection canvas,
-            this is approximately 6 source pixels.
             */
 
             left =
@@ -1695,10 +1800,6 @@
                 1;
 
 
-            /*
-            Reject clearly invalid detections.
-            */
-
             if (
                 detectedWidth <
                     detectWidth *
@@ -1714,7 +1815,7 @@
 
 
             /*
-            Convert detection coordinates back to source pixels.
+            Convert detection coordinates to source pixels.
             */
 
             const sourceLeft =
@@ -1772,10 +1873,6 @@
                     sourceTop
             };
 
-
-            /*
-            Ignore tiny fluctuations.
-            */
 
             const changed =
 
@@ -1887,11 +1984,6 @@
         /*
         ============================================================
         Maximize image in browser
-
-        Scaling up is allowed.
-        Scaling down is allowed.
-
-        Complete detected image always remains visible.
         ============================================================
         */
 
@@ -1952,7 +2044,7 @@
 
         /*
         ============================================================
-        Draw current frame
+        Draw frame
         ============================================================
         */
 
@@ -2447,6 +2539,16 @@
                 );
 
 
+                /*
+                Automatically collapse the toolbar only after the
+                stream has successfully started.
+                */
+
+                setControlsCollapsed(
+                    true
+                );
+
+
                 const track =
                     stream
                         .getVideoTracks()[0];
@@ -2732,7 +2834,18 @@
 
         window.addEventListener(
             "resize",
-            updateCanvasDisplaySize
+            () => {
+
+                updateCanvasDisplaySize();
+
+
+                /*
+                If controls are expanded, CSS will recenter them.
+
+                If collapsed, leave the arrow at the position it
+                already occupies.
+                */
+            }
         );
 
 
