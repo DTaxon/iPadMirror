@@ -14,7 +14,6 @@
     <style>
         :root {
             color-scheme: dark;
-
             --viewer-background: #000000;
         }
 
@@ -28,7 +27,6 @@
             height: 100%;
 
             margin: 0;
-
             overflow: hidden;
 
             background: var(--viewer-background);
@@ -65,9 +63,7 @@
 
 
         /*
-        Source UVC video is hidden.
-
-        The canvas is what the user actually sees.
+        Hidden UVC source video.
         */
 
         #sourceVideo {
@@ -84,6 +80,10 @@
             pointer-events: none;
         }
 
+
+        /*
+        Visible rendered output.
+        */
 
         #outputCanvas {
             display: block;
@@ -200,7 +200,6 @@
 
         button:disabled {
             opacity: 0.45;
-
             cursor: default;
         }
 
@@ -239,7 +238,7 @@
 
         /*
         ============================================================
-        Background color selector
+        Background selector
         ============================================================
         */
 
@@ -302,7 +301,6 @@
             color: #aaa;
 
             font-size: 12px;
-
             white-space: nowrap;
         }
 
@@ -346,7 +344,6 @@
 
         #message.collapsed {
             opacity: 0;
-
             visibility: hidden;
         }
 
@@ -363,7 +360,7 @@
 
         /*
         ============================================================
-        Startup screen
+        Startup
         ============================================================
         */
 
@@ -385,7 +382,6 @@
             padding: 30px;
 
             color: #aaa;
-
             text-align: center;
         }
 
@@ -409,7 +405,7 @@
 
         /*
         ============================================================
-        Small-screen controls
+        Small displays
         ============================================================
         */
 
@@ -740,7 +736,7 @@
 
         /*
         ============================================================
-        Detection settings
+        Border detection settings
         ============================================================
         */
 
@@ -752,11 +748,20 @@
             500;
 
 
+        /*
+        RGB values below this are treated as black.
+        */
+
         const BLACK_THRESHOLD =
             24;
 
 
-        const BLACK_COLUMN_RATIO =
+        /*
+        Percentage of sampled pixels that must be dark before
+        an edge row/column is classified as an HDMI black border.
+        */
+
+        const BLACK_EDGE_RATIO =
             0.99;
 
 
@@ -827,7 +832,7 @@
 
         /*
         ============================================================
-        Background
+        Background color
         ============================================================
         */
 
@@ -934,7 +939,7 @@
 
         /*
         ============================================================
-        Controls
+        Collapse controls
         ============================================================
         */
 
@@ -1103,7 +1108,7 @@
 
         /*
         ============================================================
-        Enumerate video devices
+        Device enumeration
         ============================================================
         */
 
@@ -1289,7 +1294,7 @@
 
         /*
         ============================================================
-        Active capture rectangle
+        Reset active rectangle
         ============================================================
         */
 
@@ -1317,7 +1322,7 @@
 
         /*
         ============================================================
-        Black sidebar detection
+        Black column detection
         ============================================================
         */
 
@@ -1387,13 +1392,95 @@
                 darkPixels /
                 pixelCount
             ) >=
-            BLACK_COLUMN_RATIO;
+            BLACK_EDGE_RATIO;
         }
 
 
         /*
         ============================================================
-        Detect uniform HDMI sidebars
+        Black row detection
+        ============================================================
+        */
+
+        function isBlackRow(
+            imageData,
+            width,
+            height,
+            y
+        ) {
+
+            let darkPixels =
+                0;
+
+
+            let pixelCount =
+                0;
+
+
+            for (
+                let x = 0;
+                x < width;
+                x += 2
+            ) {
+
+                const index =
+                    (
+                        y *
+                        width +
+                        x
+                    ) *
+                    4;
+
+
+                const r =
+                    imageData[index];
+
+
+                const g =
+                    imageData[
+                        index +
+                        1
+                    ];
+
+
+                const b =
+                    imageData[
+                        index +
+                        2
+                    ];
+
+
+                if (
+                    r <= BLACK_THRESHOLD &&
+                    g <= BLACK_THRESHOLD &&
+                    b <= BLACK_THRESHOLD
+                ) {
+
+                    darkPixels++;
+                }
+
+
+                pixelCount++;
+            }
+
+
+            return (
+                darkPixels /
+                pixelCount
+            ) >=
+            BLACK_EDGE_RATIO;
+        }
+
+
+        /*
+        ============================================================
+        Detect active picture rectangle
+
+        Detects black HDMI borders on all four sides:
+            left
+            right
+            top
+            bottom
         ============================================================
         */
 
@@ -1459,6 +1546,12 @@
                     .data;
 
 
+            /*
+            --------------------------------------------------------
+            Left / right
+            --------------------------------------------------------
+            */
+
             let left =
                 0;
 
@@ -1499,10 +1592,59 @@
 
 
             /*
-            Put one detection pixel back on each side.
+            --------------------------------------------------------
+            Top / bottom
+            --------------------------------------------------------
+            */
 
-            With 1920px input and 320px detection width,
+            let top =
+                0;
+
+
+            let bottom =
+                detectHeight -
+                1;
+
+
+            while (
+                top <
+                    bottom &&
+                isBlackRow(
+                    pixels,
+                    detectWidth,
+                    detectHeight,
+                    top
+                )
+            ) {
+
+                top++;
+            }
+
+
+            while (
+                bottom >
+                    top &&
+                isBlackRow(
+                    pixels,
+                    detectWidth,
+                    detectHeight,
+                    bottom
+                )
+            ) {
+
+                bottom--;
+            }
+
+
+            /*
+            --------------------------------------------------------
+            Add one detection pixel back on all four sides.
+
+            At 1920x1080 using a 320x180 detection canvas,
             this is approximately 6 source pixels.
+
+            This prevents us from trimming actual iPad pixels.
+            --------------------------------------------------------
             */
 
             left =
@@ -1521,25 +1663,63 @@
                 );
 
 
+            top =
+                Math.max(
+                    0,
+                    top - 1
+                );
+
+
+            bottom =
+                Math.min(
+                    detectHeight -
+                        1,
+                    bottom +
+                        1
+                );
+
+
+            /*
+            --------------------------------------------------------
+            Detected dimensions
+            --------------------------------------------------------
+            */
+
             const detectedWidth =
                 right -
                 left +
                 1;
 
 
+            const detectedHeight =
+                bottom -
+                top +
+                1;
+
+
             /*
-            Reject implausibly narrow detections.
+            Reject clearly invalid detections.
             */
 
             if (
                 detectedWidth <
-                detectWidth *
-                    0.35
+                    detectWidth *
+                        0.35 ||
+
+                detectedHeight <
+                    detectHeight *
+                        0.35
             ) {
 
                 return;
             }
 
+
+            /*
+            --------------------------------------------------------
+            Convert detection coordinates back to source pixels
+            --------------------------------------------------------
+            */
 
             const sourceLeft =
                 Math.floor(
@@ -1560,22 +1740,47 @@
                 );
 
 
+            const sourceTop =
+                Math.floor(
+                    top /
+                    detectHeight *
+                    videoHeight
+                );
+
+
+            const sourceBottom =
+                Math.ceil(
+                    (
+                        bottom +
+                        1
+                    ) /
+                    detectHeight *
+                    videoHeight
+                );
+
+
             const newRect = {
 
                 x:
                     sourceLeft,
 
                 y:
-                    0,
+                    sourceTop,
 
                 width:
                     sourceRight -
                     sourceLeft,
 
                 height:
-                    videoHeight
+                    sourceBottom -
+                    sourceTop
             };
 
+
+            /*
+            Prevent tiny compression/noise variations from causing
+            the canvas to continuously resize.
+            */
 
             const changed =
 
@@ -1586,13 +1791,22 @@
                 3 ||
 
                 Math.abs(
+                    newRect.y -
+                    activeRect.y
+                ) >
+                3 ||
+
+                Math.abs(
                     newRect.width -
                     activeRect.width
                 ) >
                 6 ||
 
-                newRect.height !==
-                    activeRect.height;
+                Math.abs(
+                    newRect.height -
+                    activeRect.height
+                ) >
+                6;
 
 
             if (
@@ -1677,12 +1891,12 @@
 
         /*
         ============================================================
-        Maximize canvas inside browser
+        Maximize image in browser
 
-        Complete image always remains visible.
+        Scaling up is allowed.
+        Scaling down is allowed.
 
-        Scaling UP is allowed.
-        Scaling DOWN is allowed.
+        The complete detected iPad picture is always visible.
         ============================================================
         */
 
@@ -1743,7 +1957,7 @@
 
         /*
         ============================================================
-        Draw current capture frame
+        Draw current frame
         ============================================================
         */
 
@@ -1794,12 +2008,6 @@
                 0
             );
 
-
-            /*
-            The video itself fills the canvas.
-
-            The viewer background is visible outside the canvas.
-            */
 
             outputContext.fillStyle =
                 viewerBackground;
@@ -1886,7 +2094,7 @@
 
         /*
         ============================================================
-        Render loop
+        Rendering
         ============================================================
         */
 
@@ -2177,7 +2385,7 @@
                 ) {
 
                     console.warn(
-                        "Preferred mode failed. Retrying with device defaults.",
+                        "Preferred capture mode failed. Retrying with device defaults.",
                         error
                     );
 
@@ -2210,6 +2418,11 @@
 
                 resetActiveRect();
 
+
+                /*
+                Run detection immediately so the user does not first
+                see the full HDMI frame.
+                */
 
                 detectActiveRect();
 
@@ -2524,7 +2737,7 @@
 
 
         /*
-        Re-maximize if the browser window changes size.
+        Resize output whenever browser dimensions change.
         */
 
         window.addEventListener(
@@ -2545,7 +2758,7 @@
 
 
         /*
-        Re-evaluate geometry if the source capture dimensions change.
+        Source resolution changed.
         */
 
         sourceVideo.addEventListener(
@@ -2560,7 +2773,7 @@
 
 
         /*
-        Capture-device plug/unplug.
+        Capture device connected/disconnected.
         */
 
         if (
