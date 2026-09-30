@@ -43,7 +43,6 @@
             inset: 0;
 
             overflow: hidden;
-
             background: #000;
         }
 
@@ -238,7 +237,6 @@
 
         #startup {
             position: fixed;
-
             inset: 0;
 
             z-index: 5;
@@ -254,7 +252,6 @@
             padding: 30px;
 
             color: #aaa;
-
             text-align: center;
         }
 
@@ -393,7 +390,7 @@
         <button
             id="fitButton"
             type="button"
-            title="Fill the entire window"
+            title="Scale video to maximum available window size"
         >
             Fill
         </button>
@@ -417,6 +414,13 @@
 
     <script>
         "use strict";
+
+
+        /*
+        ------------------------------------------------------------
+        Elements
+        ------------------------------------------------------------
+        */
 
         const stage =
             document.getElementById("stage");
@@ -464,6 +468,12 @@
             document.getElementById("startup");
 
 
+        /*
+        ------------------------------------------------------------
+        State
+        ------------------------------------------------------------
+        */
+
         const SAVED_DEVICE_KEY =
             "iPadMirrorUVCDevice";
 
@@ -503,10 +513,12 @@
             message.textContent =
                 text;
 
+
             message.classList.remove(
                 "live",
                 "error"
             );
+
 
             if (type) {
 
@@ -519,7 +531,7 @@
 
         /*
         ------------------------------------------------------------
-        Controls
+        Collapse / expand controls
         ------------------------------------------------------------
         */
 
@@ -829,227 +841,176 @@
 
         /*
         ------------------------------------------------------------
-        Video layout
-        ------------------------------------------------------------
-
-        This uses the actual captured video dimensions.
-
-        For a 90° or 270° rotation, width and height are treated as
-        swapped when calculating the scale.
-
-        Fit:
-            Entire image remains visible.
-
-        Fill:
-            Entire browser window is filled.
-            Some image may be cropped.
+        Rotation normalization
         ------------------------------------------------------------
         */
 
         function normalizeRotation() {
 
-                        rotation =
-                            ((rotation % 360) + 360) %
-                            360;
-                    }
-            
-            
-         function updateVideoLayout() {
+            rotation =
+                ((rotation % 360) + 360) %
+                360;
+        }
 
-    normalizeRotation();
-
-
-    const videoWidth =
-        video.videoWidth;
-
-    const videoHeight =
-        video.videoHeight;
-
-    const stageWidth =
-        stage.clientWidth;
-
-    const stageHeight =
-        stage.clientHeight;
-
-
-    if (
-        !videoWidth ||
-        !videoHeight ||
-        !stageWidth ||
-        !stageHeight
-    ) {
-        return;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    Crop the HDMI/UVC frame to the centered iPad display.
-
-    The visible iPad in your screenshot is approximately 3:4
-    in portrait orientation.
-
-    We retain the complete iPad screen and remove only the
-    black HDMI padding around it.
-    ------------------------------------------------------------
-    */
-
-    const ipadAspect =
-        3 / 4;
-
-
-    let cropWidth;
-    let cropHeight;
-
-
-    if (
-        videoWidth / videoHeight >
-        ipadAspect
-    ) {
 
         /*
-        HDMI frame is wider than the iPad.
-        Crop the left and right black bars.
+        ------------------------------------------------------------
+        Video sizing
+        ------------------------------------------------------------
+
+        No cropping is performed.
+
+        FIT:
+            - Complete video is always visible.
+            - Video may shrink.
+            - Video will not enlarge past native resolution.
+
+        FILL:
+            - Complete video is always visible.
+            - Video may shrink.
+            - Video may enlarge.
+            - Video uses as much of the window as possible.
+            - No content is cropped.
+
+        Rotation is accounted for before calculating scale.
+        ------------------------------------------------------------
         */
 
-        cropHeight =
-            videoHeight;
+        function updateVideoLayout() {
 
-        cropWidth =
-            cropHeight *
-            ipadAspect;
-
-    } else {
-
-        /*
-        HDMI frame is taller than the iPad.
-        Crop top and bottom.
-        */
-
-        cropWidth =
-            videoWidth;
-
-        cropHeight =
-            cropWidth /
-            ipadAspect;
-    }
+            normalizeRotation();
 
 
-    const cropLeft =
-        (videoWidth - cropWidth) / 2;
-
-    const cropRight =
-        cropLeft;
-
-    const cropTop =
-        (videoHeight - cropHeight) / 2;
-
-    const cropBottom =
-        cropTop;
+            const videoWidth =
+                video.videoWidth;
 
 
-    /*
-    Convert crop amounts to percentages for CSS clip-path.
-    */
-
-    const cropLeftPercent =
-        cropLeft /
-        videoWidth *
-        100;
-
-    const cropRightPercent =
-        cropRight /
-        videoWidth *
-        100;
-
-    const cropTopPercent =
-        cropTop /
-        videoHeight *
-        100;
-
-    const cropBottomPercent =
-        cropBottom /
-        videoHeight *
-        100;
+            const videoHeight =
+                video.videoHeight;
 
 
-    video.style.clipPath =
-        `inset(` +
-        `${cropTopPercent}% ` +
-        `${cropRightPercent}% ` +
-        `${cropBottomPercent}% ` +
-        `${cropLeftPercent}%` +
-        `)`;
+            const stageWidth =
+                stage.clientWidth;
 
 
-    /*
-    ------------------------------------------------------------
-    Account for manual rotation.
-    ------------------------------------------------------------
-    */
-
-    const quarterTurn =
-        rotation === 90 ||
-        rotation === 270;
+            const stageHeight =
+                stage.clientHeight;
 
 
-    const visibleWidth =
-        quarterTurn
-            ? cropHeight
-            : cropWidth;
+            if (
+                !videoWidth ||
+                !videoHeight ||
+                !stageWidth ||
+                !stageHeight
+            ) {
+
+                return;
+            }
 
 
-    const visibleHeight =
-        quarterTurn
-            ? cropWidth
-            : cropHeight;
+            /*
+            Never crop the incoming UVC frame.
+            */
+
+            video.style.clipPath =
+                "none";
 
 
-    /*
-    Small safety margin prevents browser rounding from
-    clipping an outer pixel.
-    */
+            /*
+            A 90° or 270° rotation swaps the effective
+            display width and height.
+            */
 
-    const padding =
-        4;
-
-
-    /*
-    Always maximize the COMPLETE iPad display.
-
-    Scaling UP is allowed.
-    Scaling DOWN is allowed.
-    Cropping of the actual iPad screen is not allowed.
-    */
-
-    const scale =
-        Math.min(
-            (stageWidth - padding) /
-                visibleWidth,
-
-            (stageHeight - padding) /
-                visibleHeight
-        );
+            const quarterTurn =
+                rotation === 90 ||
+                rotation === 270;
 
 
-    /*
-    Keep the video element at its real source resolution.
-    clip-path removes the HDMI padding.
-    transform sizes the remaining iPad display.
-    */
-
-    video.style.width =
-        `${videoWidth}px`;
-
-    video.style.height =
-        `${videoHeight}px`;
+            const displayWidth =
+                quarterTurn
+                    ? videoHeight
+                    : videoWidth;
 
 
-    video.style.transform =
-        `translate(-50%, -50%) ` +
-        `rotate(${rotation}deg) ` +
-        `scale(${scale})`;
-}
+            const displayHeight =
+                quarterTurn
+                    ? videoWidth
+                    : videoHeight;
+
+
+            /*
+            Leave a tiny amount of clearance so browser
+            sub-pixel rounding cannot clip an outside edge.
+            */
+
+            const padding =
+                4;
+
+
+            const availableWidth =
+                Math.max(
+                    stageWidth - padding,
+                    1
+                );
+
+
+            const availableHeight =
+                Math.max(
+                    stageHeight - padding,
+                    1
+                );
+
+
+            /*
+            Maximum scale that preserves the ENTIRE frame.
+            */
+
+            const availableScale =
+                Math.min(
+                    availableWidth /
+                        displayWidth,
+
+                    availableHeight /
+                        displayHeight
+                );
+
+
+            /*
+            Fit:
+                Allow shrinking but not enlargement.
+
+            Fill:
+                Allow enlargement or shrinking.
+            */
+
+            const scale =
+                fillMode
+                    ? availableScale
+                    : Math.min(
+                        availableScale,
+                        1
+                    );
+
+
+            /*
+            Keep the video element at the source resolution.
+            Transformation handles rotation and scaling.
+            */
+
+            video.style.width =
+                `${videoWidth}px`;
+
+
+            video.style.height =
+                `${videoHeight}px`;
+
+
+            video.style.transform =
+                `translate(-50%, -50%) ` +
+                `rotate(${rotation}deg) ` +
+                `scale(${scale})`;
+        }
+
 
         /*
         ------------------------------------------------------------
@@ -1072,11 +1033,16 @@
             }
 
 
-            stream = null;
+            stream =
+                null;
 
 
             video.srcObject =
                 null;
+
+
+            video.style.clipPath =
+                "none";
 
 
             video.style.transform =
@@ -1284,7 +1250,8 @@
                     "ended",
                     () => {
 
-                        stream = null;
+                        stream =
+                            null;
 
 
                         video.srcObject =
@@ -1316,7 +1283,9 @@
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    error
+                );
 
 
                 startButton.disabled =
@@ -1327,7 +1296,9 @@
                     true;
 
 
-                showCaptureError(error);
+                showCaptureError(
+                    error
+                );
             }
         }
 
@@ -1405,7 +1376,9 @@
 
         function rotateLeft() {
 
-            rotation -= 90;
+            rotation -=
+                90;
+
 
             updateVideoLayout();
         }
@@ -1413,7 +1386,9 @@
 
         function rotateRight() {
 
-            rotation += 90;
+            rotation +=
+                90;
+
 
             updateVideoLayout();
         }
@@ -1431,6 +1406,11 @@
                 !fillMode;
 
 
+            /*
+            Button text indicates the mode clicking it
+            will switch TO.
+            */
+
             fitButton.textContent =
                 fillMode
                     ? "Fit"
@@ -1439,8 +1419,8 @@
 
             fitButton.title =
                 fillMode
-                    ? "Fit the entire image in the window"
-                    : "Fill the entire window";
+                    ? "Return to native size or smaller"
+                    : "Maximize video while keeping the entire screen visible";
 
 
             updateVideoLayout();
@@ -1457,7 +1437,9 @@
 
             try {
 
-                if (!document.fullscreenElement) {
+                if (
+                    !document.fullscreenElement
+                ) {
 
                     await document
                         .documentElement
@@ -1471,7 +1453,9 @@
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    error
+                );
 
 
                 setMessage(
@@ -1484,7 +1468,7 @@
 
         /*
         ------------------------------------------------------------
-        Button events
+        Buttons
         ------------------------------------------------------------
         */
 
@@ -1500,13 +1484,20 @@
 
                 try {
 
-                    await refreshDevices(true);
+                    await refreshDevices(
+                        true
+                    );
 
                 } catch (error) {
 
-                    console.error(error);
+                    console.error(
+                        error
+                    );
 
-                    showCaptureError(error);
+
+                    showCaptureError(
+                        error
+                    );
                 }
             }
         );
@@ -1520,7 +1511,10 @@
 
         stopButton.addEventListener(
             "click",
-            () => stopCapture(true)
+            () =>
+                stopCapture(
+                    true
+                )
         );
 
 
@@ -1550,7 +1544,7 @@
 
         /*
         ------------------------------------------------------------
-        Video metadata / sizing events
+        Video sizing events
         ------------------------------------------------------------
         */
 
@@ -1585,7 +1579,7 @@
 
         /*
         ------------------------------------------------------------
-        Remember selected capture device
+        Remember selected device
         ------------------------------------------------------------
         */
 
@@ -1593,7 +1587,9 @@
             "change",
             () => {
 
-                if (deviceSelect.value) {
+                if (
+                    deviceSelect.value
+                ) {
 
                     localStorage.setItem(
                         SAVED_DEVICE_KEY,
@@ -1606,7 +1602,7 @@
 
         /*
         ------------------------------------------------------------
-        Device plug / unplug
+        Capture device plug / unplug
         ------------------------------------------------------------
         */
 
@@ -1623,11 +1619,15 @@
 
                         try {
 
-                            await refreshDevices(false);
+                            await refreshDevices(
+                                false
+                            );
 
                         } catch (error) {
 
-                            console.error(error);
+                            console.error(
+                                error
+                            );
                         }
                     }
                 );
@@ -1636,7 +1636,7 @@
 
         /*
         ------------------------------------------------------------
-        Initial load
+        Initialize
         ------------------------------------------------------------
         */
 
@@ -1647,7 +1647,9 @@
                 checkSupport();
 
 
-                await refreshDevices(false);
+                await refreshDevices(
+                    false
+                );
 
 
                 setMessage(
@@ -1656,7 +1658,9 @@
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    error
+                );
 
 
                 startButton.disabled =
@@ -1667,7 +1671,9 @@
                     true;
 
 
-                showCaptureError(error);
+                showCaptureError(
+                    error
+                );
             }
         }
 
