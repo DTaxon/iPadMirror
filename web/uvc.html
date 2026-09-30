@@ -848,96 +848,109 @@
 
         function normalizeRotation() {
 
-            rotation =
-                ((rotation % 360) + 360) %
-                360;
-        }
-
-
-        function updateVideoLayout() {
-
-            normalizeRotation();
-
-
-            const videoWidth =
-                video.videoWidth;
-
-
-            const videoHeight =
-                video.videoHeight;
-
-
-            const stageWidth =
-                stage.clientWidth;
-
-
-            const stageHeight =
-                stage.clientHeight;
-
-
-            if (
-                !videoWidth ||
-                !videoHeight ||
-                !stageWidth ||
-                !stageHeight
-            ) {
-
-                return;
+                        rotation =
+                            ((rotation % 360) + 360) %
+                            360;
+                    }
+            
+            
+                    function updateVideoLayout() {
+            
+                normalizeRotation();
+            
+            
+                const videoWidth =
+                    video.videoWidth;
+            
+            
+                const videoHeight =
+                    video.videoHeight;
+            
+            
+                const stageWidth =
+                    stage.clientWidth;
+            
+            
+                const stageHeight =
+                    stage.clientHeight;
+            
+            
+                if (
+                    !videoWidth ||
+                    !videoHeight ||
+                    !stageWidth ||
+                    !stageHeight
+                ) {
+                    return;
+                }
+            
+            
+                const quarterTurn =
+                    rotation === 90 ||
+                    rotation === 270;
+            
+            
+                const rotatedWidth =
+                    quarterTurn
+                        ? videoHeight
+                        : videoWidth;
+            
+            
+                const rotatedHeight =
+                    quarterTurn
+                        ? videoWidth
+                        : videoHeight;
+            
+            
+                /*
+                Leave a tiny margin so browser sub-pixel rounding
+                cannot push the image outside the viewport.
+                */
+                const fitPadding = 4;
+            
+            
+                /*
+                Maximum scale that still keeps the COMPLETE image
+                visible inside the browser window.
+                */
+                const availableScale =
+                    Math.min(
+                        (stageWidth - fitPadding) / rotatedWidth,
+                        (stageHeight - fitPadding) / rotatedHeight
+                    );
+            
+            
+                /*
+                Fit:
+                    Never enlarge above the video's native size.
+            
+                Fill:
+                    Scale up OR down to use as much of the browser
+                    window as possible while still showing the
+                    complete iPad screen.
+                */
+                const scale =
+                    fillMode
+                        ? availableScale
+                        : Math.min(
+                            availableScale,
+                            1
+                        );
+            
+            
+                video.style.width =
+                    `${videoWidth}px`;
+            
+            
+                video.style.height =
+                    `${videoHeight}px`;
+            
+            
+                video.style.transform =
+                    `translate(-50%, -50%) ` +
+                    `rotate(${rotation}deg) ` +
+                    `scale(${scale})`;
             }
-
-
-            const quarterTurn =
-                rotation === 90 ||
-                rotation === 270;
-
-
-            const rotatedWidth =
-                quarterTurn
-                    ? videoHeight
-                    : videoWidth;
-
-
-            const rotatedHeight =
-                quarterTurn
-                    ? videoWidth
-                    : videoHeight;
-
-
-            const fitPadding = 4;
-
-            const fitScale =
-                Math.min(
-                    (stageWidth - fitPadding) / rotatedWidth,
-                    (stageHeight - fitPadding) / rotatedHeight
-                );
-
-
-            const fillScale =
-                Math.max(
-                    stageWidth / rotatedWidth,
-                    stageHeight / rotatedHeight
-                );
-
-
-            const scale =
-                fillMode
-                    ? fillScale
-                    : fitScale;
-
-
-            video.style.width =
-                `${videoWidth}px`;
-
-
-            video.style.height =
-                `${videoHeight}px`;
-
-
-            video.style.transform =
-                `translate(-50%, -50%) ` +
-                `rotate(${rotation}deg) ` +
-                `scale(${scale})`;
-        }
 
 
         /*
