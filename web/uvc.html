@@ -104,24 +104,20 @@
         #controls {
             position: fixed;
 
-            top: 12px;
-            left: 50%;
+            top: 50%;
+            left: 12px;
 
-            transform: translateX(-50%);
+            transform: translateY(-50%);
 
             z-index: 10;
 
             display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+            align-items: stretch;
 
             gap: 8px;
 
-            width: min(
-                1200px,
-                calc(100vw - 24px)
-            );
+            width: 280px;
 
             padding: 10px;
 
@@ -166,6 +162,12 @@
         }
 
 
+        /*
+        ============================================================
+        General controls
+        ============================================================
+        */
+
         select,
         button {
             min-height: 38px;
@@ -182,12 +184,6 @@
         }
 
 
-        select {
-            min-width: 260px;
-            max-width: 420px;
-        }
-
-
         button {
             cursor: pointer;
         }
@@ -201,6 +197,18 @@
         button:disabled {
             opacity: 0.45;
             cursor: default;
+        }
+
+
+        #controls select,
+        #controls button {
+            width: 100%;
+        }
+
+
+        #controls select {
+            min-width: 0;
+            max-width: none;
         }
 
 
@@ -245,9 +253,11 @@
         #backgroundControl {
             display: flex;
             align-items: center;
+            justify-content: space-between;
 
             gap: 7px;
 
+            width: 100%;
             min-height: 38px;
 
             padding: 4px 8px;
@@ -264,7 +274,7 @@
 
 
         #backgroundColorPicker {
-            width: 32px;
+            width: 36px;
             height: 28px;
 
             margin: 0;
@@ -296,12 +306,19 @@
         */
 
         #diagnostics {
-            margin-left: 4px;
+            width: 100%;
+
+            margin: 4px 0 0 0;
 
             color: #aaa;
 
             font-size: 12px;
-            white-space: nowrap;
+            line-height: 1.4;
+
+            white-space: normal;
+            overflow-wrap: anywhere;
+
+            text-align: center;
         }
 
 
@@ -405,29 +422,30 @@
 
         /*
         ============================================================
-        Small displays
+        Short browser windows
         ============================================================
         */
 
-        @media (max-width: 800px) {
+        @media (max-height: 720px) {
 
-            #controls:not(.collapsed) {
-                justify-content: flex-start;
+            #controls {
+                top: 8px;
+                bottom: 8px;
+
+                transform: none;
+
+                overflow-y: auto;
             }
+        }
 
 
-            #controls:not(.collapsed) select {
-                width: 100%;
-                max-width: none;
-            }
+        @media (max-width: 500px) {
 
-
-            #controls:not(.collapsed) #diagnostics {
-                width: 100%;
-
-                margin-left: 0;
-
-                text-align: center;
+            #controls {
+                width: min(
+                    260px,
+                    calc(100vw - 24px)
+                );
             }
         }
     </style>
@@ -444,6 +462,7 @@
             playsinline
             muted
         ></video>
+
 
         <canvas
             id="outputCanvas"
@@ -476,7 +495,7 @@
             type="button"
             title="Hide controls"
         >
-            ▲
+            ◀
         </button>
 
 
@@ -520,7 +539,7 @@
             type="button"
             title="Rotate counterclockwise"
         >
-            ↺ 90°
+            ↺ Rotate 90°
         </button>
 
 
@@ -529,7 +548,7 @@
             type="button"
             title="Rotate clockwise"
         >
-            ↻ 90°
+            ↻ Rotate 90°
         </button>
 
 
@@ -538,7 +557,9 @@
             title="Viewer background color"
         >
 
-            Background
+            <span>
+                Background
+            </span>
 
             <input
                 id="backgroundColorPicker"
@@ -554,7 +575,7 @@
             type="button"
             title="Reset background to black"
         >
-            Reset BG
+            Reset Background
         </button>
 
 
@@ -748,18 +769,9 @@
             500;
 
 
-        /*
-        RGB values below this are treated as black.
-        */
-
         const BLACK_THRESHOLD =
             24;
 
-
-        /*
-        Percentage of sampled pixels that must be dark before
-        an edge row/column is classified as an HDMI black border.
-        */
 
         const BLACK_EDGE_RATIO =
             0.99;
@@ -963,8 +975,8 @@
 
             collapseButton.textContent =
                 controlsCollapsed
-                    ? "▼"
-                    : "▲";
+                    ? "▶"
+                    : "◀";
 
 
             collapseButton.title =
@@ -1476,7 +1488,7 @@
         ============================================================
         Detect active picture rectangle
 
-        Detects black HDMI borders on all four sides:
+        Removes uniform black HDMI borders from:
             left
             right
             top
@@ -1547,9 +1559,7 @@
 
 
             /*
-            --------------------------------------------------------
             Left / right
-            --------------------------------------------------------
             */
 
             let left =
@@ -1592,9 +1602,7 @@
 
 
             /*
-            --------------------------------------------------------
             Top / bottom
-            --------------------------------------------------------
             */
 
             let top =
@@ -1637,14 +1645,10 @@
 
 
             /*
-            --------------------------------------------------------
             Add one detection pixel back on all four sides.
 
             At 1920x1080 using a 320x180 detection canvas,
             this is approximately 6 source pixels.
-
-            This prevents us from trimming actual iPad pixels.
-            --------------------------------------------------------
             */
 
             left =
@@ -1679,12 +1683,6 @@
                 );
 
 
-            /*
-            --------------------------------------------------------
-            Detected dimensions
-            --------------------------------------------------------
-            */
-
             const detectedWidth =
                 right -
                 left +
@@ -1716,9 +1714,7 @@
 
 
             /*
-            --------------------------------------------------------
-            Convert detection coordinates back to source pixels
-            --------------------------------------------------------
+            Convert detection coordinates back to source pixels.
             */
 
             const sourceLeft =
@@ -1778,8 +1774,7 @@
 
 
             /*
-            Prevent tiny compression/noise variations from causing
-            the canvas to continuously resize.
+            Ignore tiny fluctuations.
             */
 
             const changed =
@@ -1896,7 +1891,7 @@
         Scaling up is allowed.
         Scaling down is allowed.
 
-        The complete detected iPad picture is always visible.
+        Complete detected image always remains visible.
         ============================================================
         */
 
@@ -2419,11 +2414,6 @@
                 resetActiveRect();
 
 
-                /*
-                Run detection immediately so the user does not first
-                see the full HDMI frame.
-                */
-
                 detectActiveRect();
 
 
@@ -2737,7 +2727,7 @@
 
 
         /*
-        Resize output whenever browser dimensions change.
+        Browser resize.
         */
 
         window.addEventListener(
@@ -2758,7 +2748,7 @@
 
 
         /*
-        Source resolution changed.
+        Source dimensions changed.
         */
 
         sourceVideo.addEventListener(
