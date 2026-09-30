@@ -62,10 +62,6 @@
         }
 
 
-        /*
-        Hidden UVC source video.
-        */
-
         #sourceVideo {
             position: fixed;
 
@@ -80,10 +76,6 @@
             pointer-events: none;
         }
 
-
-        /*
-        Visible rendered output.
-        */
 
         #outputCanvas {
             display: block;
@@ -105,7 +97,7 @@
             position: fixed;
 
             top: 50%;
-            left: 12px;
+            left: 8px;
 
             transform: translateY(-50%);
 
@@ -119,7 +111,11 @@
 
             width: 280px;
 
+            max-height: calc(100vh - 16px);
+
             padding: 10px;
+
+            overflow-y: auto;
 
             border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 12px;
@@ -132,12 +128,14 @@
 
 
         #controls.collapsed {
-            left: 12px;
-
             width: auto;
             min-width: 0;
 
-            padding: 6px;
+            max-height: none;
+
+            padding: 4px;
+
+            overflow: visible;
 
             transform: none;
         }
@@ -145,19 +143,6 @@
 
         #controls.collapsed > *:not(#collapseButton) {
             display: none;
-        }
-
-
-        #controls.collapsed #collapseButton {
-            display: block;
-
-            width: 38px;
-            min-width: 38px;
-            height: 38px;
-
-            padding: 0;
-
-            font-size: 18px;
         }
 
 
@@ -200,7 +185,7 @@
 
 
         #controls select,
-        #controls button {
+        #controls button:not(#collapseButton) {
             width: 100%;
         }
 
@@ -211,13 +196,38 @@
         }
 
 
-        #collapseButton {
-            min-width: 38px;
+        /*
+        The arrow is intentionally much narrower than the menu.
+        It is also the vertical drag handle.
+        */
 
-            padding-left: 10px;
-            padding-right: 10px;
+        #controls #collapseButton {
+            align-self: flex-start;
 
-            font-size: 17px;
+            width: 28px;
+            min-width: 28px;
+            height: 38px;
+            min-height: 38px;
+
+            padding: 0;
+
+            font-size: 16px;
+            line-height: 1;
+
+            cursor: ns-resize;
+
+            touch-action: none;
+
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+
+        #controls.collapsed #collapseButton {
+            width: 28px;
+            min-width: 28px;
+
+            margin: 0;
         }
 
 
@@ -421,29 +431,16 @@
 
         /*
         ============================================================
-        Short browser windows
+        Narrow browser windows
         ============================================================
         */
-
-        @media (max-height: 720px) {
-
-            #controls:not(.collapsed) {
-                top: 8px;
-                bottom: 8px;
-
-                transform: none;
-
-                overflow-y: auto;
-            }
-        }
-
 
         @media (max-width: 500px) {
 
             #controls:not(.collapsed) {
                 width: min(
                     260px,
-                    calc(100vw - 24px)
+                    calc(100vw - 16px)
                 );
             }
         }
@@ -492,7 +489,7 @@
         <button
             id="collapseButton"
             type="button"
-            title="Hide controls"
+            title="Click to hide controls. Drag up or down to move."
         >
             ◀
         </button>
@@ -572,7 +569,6 @@
         <button
             id="resetBackgroundButton"
             type="button"
-            title="Reset background to black"
         >
             Reset Background
         </button>
@@ -754,6 +750,10 @@
             "iPadMirrorBackgroundColor";
 
 
+        const SAVED_TOOLBAR_POSITION_KEY =
+            "iPadMirrorToolbarPosition";
+
+
         /*
         ============================================================
         Border detection settings
@@ -774,6 +774,20 @@
 
         const BLACK_EDGE_RATIO =
             0.99;
+
+
+        /*
+        ============================================================
+        Toolbar settings
+        ============================================================
+        */
+
+        const TOOLBAR_EDGE_MARGIN =
+            8;
+
+
+        const DRAG_THRESHOLD =
+            4;
 
 
         /*
@@ -808,6 +822,35 @@
 
         let viewerBackground =
             "#000000";
+
+
+        /*
+        Desired vertical center of the collapse/expand arrow
+        measured in browser viewport pixels.
+        */
+
+        let toolbarButtonCenterY =
+            null;
+
+
+        let toolbarDragging =
+            false;
+
+
+        let toolbarDragStartY =
+            0;
+
+
+        let toolbarDragStartCenterY =
+            0;
+
+
+        let suppressToolbarClick =
+            false;
+
+
+        let toolbarPointerId =
+            null;
 
 
         let activeRect = {
@@ -950,13 +993,207 @@
 
         /*
         ============================================================
-        Controls
+        Toolbar position
+        ============================================================
+        */
 
-        When collapsing, record the current on-screen location of
-        the collapse button first.
+        function saveToolbarPosition() {
 
-        The collapsed toolbar is then positioned so the expand
-        button occupies exactly the same vertical location.
+            if (
+                toolbarButtonCenterY ===
+                null
+            ) {
+
+                return;
+            }
+
+
+            const ratio =
+                toolbarButtonCenterY /
+                window.innerHeight;
+
+
+            localStorage.setItem(
+                SAVED_TOOLBAR_POSITION_KEY,
+                String(ratio)
+            );
+        }
+
+
+        function loadToolbarPosition() {
+
+            const saved =
+                parseFloat(
+                    localStorage.getItem(
+                        SAVED_TOOLBAR_POSITION_KEY
+                    )
+                );
+
+
+            if (
+                Number.isFinite(saved) &&
+                saved >= 0 &&
+                saved <= 1
+            ) {
+
+                toolbarButtonCenterY =
+                    saved *
+                    window.innerHeight;
+
+
+                positionControls();
+
+                return;
+            }
+
+
+            /*
+            No saved position.
+
+            Use the arrow's current position from the initial
+            centered-menu layout.
+            */
+
+            const rect =
+                collapseButton
+                    .getBoundingClientRect();
+
+
+            toolbarButtonCenterY =
+                rect.top +
+                rect.height / 2;
+
+
+            positionControls();
+        }
+
+
+        function positionControls() {
+
+            if (
+                toolbarButtonCenterY ===
+                null
+            ) {
+
+                return;
+            }
+
+
+            /*
+            Clamp the arrow itself to the viewport.
+            */
+
+            const buttonHeight =
+                collapseButton.offsetHeight;
+
+
+            const halfButton =
+                buttonHeight / 2;
+
+
+            toolbarButtonCenterY =
+                Math.max(
+                    TOOLBAR_EDGE_MARGIN +
+                        halfButton,
+
+                    Math.min(
+                        window.innerHeight -
+                            TOOLBAR_EDGE_MARGIN -
+                            halfButton,
+
+                        toolbarButtonCenterY
+                    )
+                );
+
+
+            /*
+            offsetTop tells us where the arrow begins inside
+            the current expanded/collapsed toolbar.
+            */
+
+            const buttonOffsetTop =
+                collapseButton.offsetTop;
+
+
+            let desiredControlsTop =
+                toolbarButtonCenterY -
+                buttonOffsetTop -
+                halfButton;
+
+
+            /*
+            Keep the complete menu inside the browser whenever
+            its height allows it.
+            */
+
+            const controlsHeight =
+                controls.offsetHeight;
+
+
+            const maximumTop =
+                window.innerHeight -
+                controlsHeight -
+                TOOLBAR_EDGE_MARGIN;
+
+
+            if (
+                maximumTop >=
+                TOOLBAR_EDGE_MARGIN
+            ) {
+
+                desiredControlsTop =
+                    Math.max(
+                        TOOLBAR_EDGE_MARGIN,
+
+                        Math.min(
+                            maximumTop,
+                            desiredControlsTop
+                        )
+                    );
+
+            } else {
+
+                desiredControlsTop =
+                    TOOLBAR_EDGE_MARGIN;
+            }
+
+
+            controls.style.top =
+                `${desiredControlsTop}px`;
+
+
+            controls.style.bottom =
+                "auto";
+
+
+            controls.style.transform =
+                "none";
+        }
+
+
+        /*
+        Read the arrow's actual location after browser clamping.
+
+        This prevents a jump when switching between collapsed
+        and expanded states near the top or bottom of the screen.
+        */
+
+        function syncToolbarPositionFromActualButton() {
+
+            const rect =
+                collapseButton
+                    .getBoundingClientRect();
+
+
+            toolbarButtonCenterY =
+                rect.top +
+                rect.height / 2;
+        }
+
+
+        /*
+        ============================================================
+        Collapse / expand controls
         ============================================================
         */
 
@@ -973,116 +1210,56 @@
             }
 
 
-            if (
+            /*
+            Preserve the current arrow location.
+            */
+
+            syncToolbarPositionFromActualButton();
+
+
+            controls.classList.toggle(
+                "collapsed",
                 collapsed
-            ) {
-
-                /*
-                Capture the exact position of the arrow while the
-                toolbar is still expanded.
-                */
-
-                const buttonTop =
-                    collapseButton
-                        .getBoundingClientRect()
-                        .top;
+            );
 
 
-                /*
-                Apply collapsed layout.
-                */
-
-                controls.classList.add(
-                    "collapsed"
-                );
+            message.classList.toggle(
+                "collapsed",
+                collapsed
+            );
 
 
-                /*
-                The button sits inside the collapsed container.
-                offsetTop gives us its position relative to the
-                container, including the collapsed padding.
-                */
-
-                const buttonOffset =
-                    collapseButton.offsetTop;
+            controlsCollapsed =
+                collapsed;
 
 
-                /*
-                Move the collapsed container so the arrow returns
-                to exactly the same viewport Y position.
-                */
-
-                controls.style.top =
-                    `${
-                        buttonTop -
-                        buttonOffset
-                    }px`;
+            collapseButton.textContent =
+                collapsed
+                    ? "▶"
+                    : "◀";
 
 
-                controls.style.bottom =
-                    "auto";
+            collapseButton.title =
+                collapsed
+                    ? "Click to show controls. Drag up or down to move."
+                    : "Click to hide controls. Drag up or down to move.";
 
 
-                controls.style.transform =
-                    "none";
+            /*
+            Re-position after the toolbar dimensions have changed.
+            */
+
+            positionControls();
 
 
-                message.classList.add(
-                    "collapsed"
-                );
+            /*
+            Store the real resulting arrow position so toggling
+            again does not cause a jump.
+            */
 
+            syncToolbarPositionFromActualButton();
 
-                collapseButton.textContent =
-                    "▶";
-
-
-                collapseButton.title =
-                    "Show controls";
-
-
-                controlsCollapsed =
-                    true;
-
-            } else {
-
-                /*
-                Return positioning control to the normal expanded
-                CSS rules.
-                */
-
-                controls.classList.remove(
-                    "collapsed"
-                );
-
-
-                controls.style.top =
-                    "";
-
-
-                controls.style.bottom =
-                    "";
-
-
-                controls.style.transform =
-                    "";
-
-
-                message.classList.remove(
-                    "collapsed"
-                );
-
-
-                collapseButton.textContent =
-                    "◀";
-
-
-                collapseButton.title =
-                    "Hide controls";
-
-
-                controlsCollapsed =
-                    false;
-            }
+            saveToolbarPosition();
         }
 
 
@@ -1092,6 +1269,209 @@
                 !controlsCollapsed
             );
         }
+
+
+        /*
+        ============================================================
+        Toolbar dragging
+
+        Pointer Events support mouse, pen, and touch.
+
+        A short press remains a normal click.
+        Moving more than DRAG_THRESHOLD pixels becomes a drag.
+        ============================================================
+        */
+
+        collapseButton.addEventListener(
+            "pointerdown",
+            event => {
+
+                if (
+                    event.button !== undefined &&
+                    event.button !== 0
+                ) {
+
+                    return;
+                }
+
+
+                syncToolbarPositionFromActualButton();
+
+
+                toolbarPointerId =
+                    event.pointerId;
+
+
+                toolbarDragStartY =
+                    event.clientY;
+
+
+                toolbarDragStartCenterY =
+                    toolbarButtonCenterY;
+
+
+                toolbarDragging =
+                    false;
+
+
+                suppressToolbarClick =
+                    false;
+
+
+                collapseButton.setPointerCapture(
+                    event.pointerId
+                );
+            }
+        );
+
+
+        collapseButton.addEventListener(
+            "pointermove",
+            event => {
+
+                if (
+                    toolbarPointerId !==
+                    event.pointerId
+                ) {
+
+                    return;
+                }
+
+
+                const deltaY =
+                    event.clientY -
+                    toolbarDragStartY;
+
+
+                if (
+                    !toolbarDragging &&
+                    Math.abs(deltaY) >=
+                        DRAG_THRESHOLD
+                ) {
+
+                    toolbarDragging =
+                        true;
+                }
+
+
+                if (
+                    !toolbarDragging
+                ) {
+
+                    return;
+                }
+
+
+                event.preventDefault();
+
+
+                toolbarButtonCenterY =
+                    toolbarDragStartCenterY +
+                    deltaY;
+
+
+                positionControls();
+
+
+                /*
+                The expanded menu may reach a viewport boundary.
+                Keep our saved anchor synchronized with wherever
+                the arrow actually ended up.
+                */
+
+                syncToolbarPositionFromActualButton();
+            }
+        );
+
+
+        function finishToolbarDrag(
+            event
+        ) {
+
+            if (
+                toolbarPointerId !==
+                event.pointerId
+            ) {
+
+                return;
+            }
+
+
+            if (
+                toolbarDragging
+            ) {
+
+                suppressToolbarClick =
+                    true;
+
+
+                syncToolbarPositionFromActualButton();
+
+                saveToolbarPosition();
+            }
+
+
+            try {
+
+                collapseButton.releasePointerCapture(
+                    event.pointerId
+                );
+
+            } catch (
+                error
+            ) {
+
+                /*
+                Pointer capture may already have been released.
+                No action required.
+                */
+            }
+
+
+            toolbarPointerId =
+                null;
+
+
+            toolbarDragging =
+                false;
+        }
+
+
+        collapseButton.addEventListener(
+            "pointerup",
+            finishToolbarDrag
+        );
+
+
+        collapseButton.addEventListener(
+            "pointercancel",
+            finishToolbarDrag
+        );
+
+
+        collapseButton.addEventListener(
+            "click",
+            event => {
+
+                if (
+                    suppressToolbarClick
+                ) {
+
+                    suppressToolbarClick =
+                        false;
+
+
+                    event.preventDefault();
+
+                    event.stopPropagation();
+
+                    return;
+                }
+
+
+                toggleControls();
+            }
+        );
 
 
         /*
@@ -1596,11 +1976,7 @@
         ============================================================
         Detect active picture rectangle
 
-        Removes black HDMI borders from:
-            left
-            right
-            top
-            bottom
+        Removes uniform black HDMI borders from all four sides.
         ============================================================
         */
 
@@ -1666,10 +2042,6 @@
                     .data;
 
 
-            /*
-            Left / right
-            */
-
             let left =
                 0;
 
@@ -1708,10 +2080,6 @@
                 right--;
             }
 
-
-            /*
-            Top / bottom
-            */
 
             let top =
                 0;
@@ -1753,7 +2121,9 @@
 
 
             /*
-            Add one detection pixel back on all four sides.
+            Put one detection pixel back on every side.
+            At 1920x1080 with 320x180 detection this is
+            approximately six source pixels.
             */
 
             left =
@@ -1813,10 +2183,6 @@
                 return;
             }
 
-
-            /*
-            Convert detection coordinates to source pixels.
-            */
 
             const sourceLeft =
                 Math.floor(
@@ -1983,7 +2349,7 @@
 
         /*
         ============================================================
-        Maximize image in browser
+        Maximize complete image in browser
         ============================================================
         */
 
@@ -2540,8 +2906,8 @@
 
 
                 /*
-                Automatically collapse the toolbar only after the
-                stream has successfully started.
+                Automatically move the toolbar out of the way.
+                Its current vertical position is preserved.
                 */
 
                 setControlsCollapsed(
@@ -2728,15 +3094,9 @@
 
         /*
         ============================================================
-        Events
+        Other events
         ============================================================
         */
-
-        collapseButton.addEventListener(
-            "click",
-            toggleControls
-        );
-
 
         refreshButton.addEventListener(
             "click",
@@ -2829,7 +3189,9 @@
 
 
         /*
-        Browser resize.
+        ============================================================
+        Browser resize
+        ============================================================
         */
 
         window.addEventListener(
@@ -2840,11 +3202,15 @@
 
 
                 /*
-                If controls are expanded, CSS will recenter them.
-
-                If collapsed, leave the arrow at the position it
-                already occupies.
+                Reposition the toolbar using its saved vertical
+                anchor, then sync to the actual clamped position.
                 */
+
+                positionControls();
+
+                syncToolbarPositionFromActualButton();
+
+                saveToolbarPosition();
             }
         );
 
@@ -2854,14 +3220,25 @@
             () => {
 
                 requestAnimationFrame(
-                    updateCanvasDisplaySize
+                    () => {
+
+                        updateCanvasDisplaySize();
+
+                        positionControls();
+
+                        syncToolbarPositionFromActualButton();
+
+                        saveToolbarPosition();
+                    }
                 );
             }
         );
 
 
         /*
-        Source dimensions changed.
+        ============================================================
+        Source resolution changed
+        ============================================================
         */
 
         sourceVideo.addEventListener(
@@ -2876,7 +3253,9 @@
 
 
         /*
-        Capture device connected/disconnected.
+        ============================================================
+        Capture device connected/disconnected
+        ============================================================
         */
 
         if (
@@ -2920,6 +3299,14 @@
             try {
 
                 loadBackgroundColor();
+
+
+                /*
+                Capture the initial arrow position after the browser
+                has completed the first layout.
+                */
+
+                loadToolbarPosition();
 
 
                 checkSupport();
