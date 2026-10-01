@@ -9,7 +9,7 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>iPadMirror - Wired</title>
+    <title>iOS Mirror - Wired UVC</title>
 
     <style>
         :root {
@@ -30,7 +30,7 @@
             overflow: hidden;
 
             background: var(--viewer-background);
-            color: #fff;
+            color: #ffffff;
 
             font-family:
                 -apple-system,
@@ -42,11 +42,9 @@
         }
 
 
-        /*
-        ============================================================
-        Viewer
-        ============================================================
-        */
+        /* ========================================================
+           Viewer
+           ======================================================== */
 
         #stage {
             position: fixed;
@@ -61,7 +59,6 @@
             background: var(--viewer-background);
         }
 
-
         #sourceVideo {
             position: fixed;
 
@@ -72,10 +69,8 @@
             height: 1px;
 
             opacity: 0;
-
             pointer-events: none;
         }
-
 
         #outputCanvas {
             display: block;
@@ -87,11 +82,9 @@
         }
 
 
-        /*
-        ============================================================
-        Controls
-        ============================================================
-        */
+        /* ========================================================
+           Toolbar
+           ======================================================== */
 
         #controls {
             position: fixed;
@@ -110,7 +103,6 @@
             gap: 8px;
 
             width: 280px;
-
             max-height: calc(100vh - 16px);
 
             padding: 10px;
@@ -126,7 +118,6 @@
             -webkit-backdrop-filter: blur(12px);
         }
 
-
         #controls.collapsed {
             width: auto;
             min-width: 0;
@@ -140,17 +131,14 @@
             transform: none;
         }
 
-
         #controls.collapsed > *:not(#collapseButton) {
             display: none;
         }
 
 
-        /*
-        ============================================================
-        General controls
-        ============================================================
-        */
+        /* ========================================================
+           General controls
+           ======================================================== */
 
         select,
         button {
@@ -158,37 +146,32 @@
 
             padding: 7px 12px;
 
-            border: 1px solid #555;
+            border: 1px solid #555555;
             border-radius: 7px;
 
             background: #262626;
-            color: #fff;
+            color: #ffffff;
 
             font-size: 14px;
         }
-
 
         button {
             cursor: pointer;
         }
 
-
         button:hover {
             background: #383838;
         }
-
 
         button:disabled {
             opacity: 0.45;
             cursor: default;
         }
 
-
         #controls select,
         #controls button:not(#collapseButton) {
             width: 100%;
         }
-
 
         #controls select {
             min-width: 0;
@@ -196,16 +179,16 @@
         }
 
 
-        /*
-        The arrow is intentionally much narrower than the menu.
-        It is also the vertical drag handle.
-        */
+        /* ========================================================
+           Collapse / drag button
+           ======================================================== */
 
         #controls #collapseButton {
             align-self: flex-start;
 
             width: 28px;
             min-width: 28px;
+
             height: 38px;
             min-height: 38px;
 
@@ -222,7 +205,6 @@
             -webkit-user-select: none;
         }
 
-
         #controls.collapsed #collapseButton {
             width: 28px;
             min-width: 28px;
@@ -231,33 +213,56 @@
         }
 
 
+        /* ========================================================
+           Capture buttons
+           ======================================================== */
+
         #startButton {
             background: #176b36;
             border-color: #26884c;
         }
 
-
         #startButton:hover {
             background: #1d8142;
         }
-
 
         #stopButton {
             background: #702828;
             border-color: #8a3434;
         }
 
-
         #stopButton:hover {
             background: #853030;
         }
 
 
-        /*
-        ============================================================
-        Background selector
-        ============================================================
-        */
+        /* ========================================================
+           Labels
+           ======================================================== */
+
+        .controlGroup {
+            display: flex;
+            flex-direction: column;
+
+            gap: 4px;
+        }
+
+        .controlLabel {
+            padding-left: 2px;
+
+            color: #aaaaaa;
+
+            font-size: 11px;
+            font-weight: 600;
+
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+
+        /* ========================================================
+           Background selector
+           ======================================================== */
 
         #backgroundControl {
             display: flex;
@@ -271,16 +276,15 @@
 
             padding: 4px 8px;
 
-            border: 1px solid #555;
+            border: 1px solid #555555;
             border-radius: 7px;
 
             background: #262626;
 
-            color: #ddd;
+            color: #dddddd;
 
             font-size: 13px;
         }
-
 
         #backgroundColorPicker {
             width: 36px;
@@ -296,46 +300,46 @@
             cursor: pointer;
         }
 
-
         #backgroundColorPicker::-webkit-color-swatch-wrapper {
             padding: 2px;
         }
 
-
         #backgroundColorPicker::-webkit-color-swatch {
-            border: 1px solid #777;
+            border: 1px solid #777777;
             border-radius: 5px;
         }
 
 
-        /*
-        ============================================================
-        Diagnostics
-        ============================================================
-        */
+        /* ========================================================
+           Diagnostics
+           ======================================================== */
 
         #diagnostics {
             width: 100%;
 
             margin: 4px 0 0 0;
 
-            color: #aaa;
+            padding: 7px;
 
-            font-size: 12px;
-            line-height: 1.4;
+            border-radius: 6px;
+
+            background: rgba(0, 0, 0, 0.25);
+
+            color: #aaaaaa;
+
+            font-size: 11px;
+            line-height: 1.5;
 
             white-space: normal;
             overflow-wrap: anywhere;
 
-            text-align: center;
+            text-align: left;
         }
 
 
-        /*
-        ============================================================
-        Status message
-        ============================================================
-        */
+        /* ========================================================
+           Status message
+           ======================================================== */
 
         #message {
             position: fixed;
@@ -355,7 +359,7 @@
 
             background: rgba(20, 20, 20, 0.85);
 
-            color: #ddd;
+            color: #dddddd;
 
             font-size: 13px;
             text-align: center;
@@ -367,28 +371,23 @@
                 visibility 0.2s ease;
         }
 
-
         #message.collapsed {
             opacity: 0;
             visibility: hidden;
         }
 
-
         #message.live {
             color: #8ee6a8;
         }
-
 
         #message.error {
             color: #ff9696;
         }
 
 
-        /*
-        ============================================================
-        Startup
-        ============================================================
-        */
+        /* ========================================================
+           Startup
+           ======================================================== */
 
         #startup {
             position: fixed;
@@ -403,24 +402,21 @@
             pointer-events: none;
         }
 
-
         #startupContent {
             padding: 30px;
 
-            color: #aaa;
+            color: #aaaaaa;
             text-align: center;
         }
-
 
         #startupContent h1 {
             margin: 0 0 8px 0;
 
-            color: #fff;
+            color: #ffffff;
 
             font-size: 32px;
             font-weight: 500;
         }
-
 
         #startupContent p {
             margin: 0;
@@ -429,11 +425,9 @@
         }
 
 
-        /*
-        ============================================================
-        Narrow browser windows
-        ============================================================
-        */
+        /* ========================================================
+           Narrow browser
+           ======================================================== */
 
         @media (max-width: 500px) {
 
@@ -459,7 +453,6 @@
             muted
         ></video>
 
-
         <canvas
             id="outputCanvas"
         ></canvas>
@@ -472,7 +465,7 @@
         <div id="startupContent">
 
             <h1>
-                iPadMirror
+                iOS Mirror
             </h1>
 
             <p>
@@ -495,21 +488,73 @@
         </button>
 
 
-        <select
-            id="deviceSelect"
-            aria-label="Video capture device"
-        >
-            <option value="">
-                Loading video devices...
-            </option>
-        </select>
+        <div class="controlGroup">
+
+            <div class="controlLabel">
+                Capture Device
+            </div>
+
+            <select
+                id="deviceSelect"
+                aria-label="Video capture device"
+            >
+                <option value="">
+                    Loading video devices...
+                </option>
+            </select>
+
+        </div>
+
+
+        <div class="controlGroup">
+
+            <div class="controlLabel">
+                Capture Mode
+            </div>
+
+            <select
+                id="captureModeSelect"
+                aria-label="Capture mode"
+            >
+
+                <option value="auto">
+                    Auto / Device Default
+                </option>
+
+                <option value="1080p60">
+                    1920 × 1080 @ 60
+                </option>
+
+                <option value="1080p30">
+                    1920 × 1080 @ 30
+                </option>
+
+                <option value="720p60">
+                    1280 × 720 @ 60
+                </option>
+
+                <option value="720p30">
+                    1280 × 720 @ 30
+                </option>
+
+                <option value="640x480p30">
+                    640 × 480 @ 30
+                </option>
+
+                <option value="720x480p30">
+                    720 × 480 @ 30
+                </option>
+
+            </select>
+
+        </div>
 
 
         <button
             id="refreshButton"
             type="button"
         >
-            Refresh
+            Refresh Devices
         </button>
 
 
@@ -533,7 +578,6 @@
         <button
             id="rotateLeftButton"
             type="button"
-            title="Rotate counterclockwise"
         >
             ↺ Rotate 90°
         </button>
@@ -542,7 +586,6 @@
         <button
             id="rotateRightButton"
             type="button"
-            title="Rotate clockwise"
         >
             ↻ Rotate 90°
         </button>
@@ -598,29 +641,24 @@
         "use strict";
 
 
-        /*
-        ============================================================
-        Elements
-        ============================================================
-        */
+        /* ========================================================
+           Elements
+           ======================================================== */
 
         const stage =
             document.getElementById(
                 "stage"
             );
 
-
         const sourceVideo =
             document.getElementById(
                 "sourceVideo"
             );
 
-
         const outputCanvas =
             document.getElementById(
                 "outputCanvas"
             );
-
 
         const outputContext =
             outputCanvas.getContext(
@@ -630,84 +668,75 @@
                 }
             );
 
-
         const controls =
             document.getElementById(
                 "controls"
             );
-
 
         const collapseButton =
             document.getElementById(
                 "collapseButton"
             );
 
-
         const deviceSelect =
             document.getElementById(
                 "deviceSelect"
             );
 
+        const captureModeSelect =
+            document.getElementById(
+                "captureModeSelect"
+            );
 
         const refreshButton =
             document.getElementById(
                 "refreshButton"
             );
 
-
         const startButton =
             document.getElementById(
                 "startButton"
             );
-
 
         const stopButton =
             document.getElementById(
                 "stopButton"
             );
 
-
         const rotateLeftButton =
             document.getElementById(
                 "rotateLeftButton"
             );
-
 
         const rotateRightButton =
             document.getElementById(
                 "rotateRightButton"
             );
 
-
         const backgroundColorPicker =
             document.getElementById(
                 "backgroundColorPicker"
             );
-
 
         const resetBackgroundButton =
             document.getElementById(
                 "resetBackgroundButton"
             );
 
-
         const fullscreenButton =
             document.getElementById(
                 "fullscreenButton"
             );
-
 
         const diagnostics =
             document.getElementById(
                 "diagnostics"
             );
 
-
         const message =
             document.getElementById(
                 "message"
             );
-
 
         const startup =
             document.getElementById(
@@ -715,17 +744,14 @@
             );
 
 
-        /*
-        ============================================================
-        Detection canvas
-        ============================================================
-        */
+        /* ========================================================
+           Detection canvas
+           ======================================================== */
 
         const detectionCanvas =
             document.createElement(
                 "canvas"
             );
-
 
         const detectionContext =
             detectionCanvas.getContext(
@@ -736,134 +762,196 @@
             );
 
 
-        /*
-        ============================================================
-        Saved settings
-        ============================================================
-        */
+        /* ========================================================
+           Saved settings
+           ======================================================== */
 
         const SAVED_DEVICE_KEY =
-            "iPadMirrorUVCDevice";
+            "iOSMirrorUVCDevice";
 
+        const SAVED_CAPTURE_MODE_KEY =
+            "iOSMirrorCaptureMode";
 
         const SAVED_BACKGROUND_KEY =
-            "iPadMirrorBackgroundColor";
-
+            "iOSMirrorBackgroundColor";
 
         const SAVED_TOOLBAR_POSITION_KEY =
-            "iPadMirrorToolbarPosition";
+            "iOSMirrorToolbarPosition";
 
 
-        /*
-        ============================================================
-        Border detection settings
-        ============================================================
-        */
+        /* ========================================================
+           Capture modes
+           ======================================================== */
+
+        const captureModes = {
+
+            auto: {
+                name:
+                    "Auto / Device Default"
+            },
+
+            "1080p60": {
+                name:
+                    "1920 × 1080 @ 60",
+                width:
+                    1920,
+                height:
+                    1080,
+                frameRate:
+                    60
+            },
+
+            "1080p30": {
+                name:
+                    "1920 × 1080 @ 30",
+                width:
+                    1920,
+                height:
+                    1080,
+                frameRate:
+                    30
+            },
+
+            "720p60": {
+                name:
+                    "1280 × 720 @ 60",
+                width:
+                    1280,
+                height:
+                    720,
+                frameRate:
+                    60
+            },
+
+            "720p30": {
+                name:
+                    "1280 × 720 @ 30",
+                width:
+                    1280,
+                height:
+                    720,
+                frameRate:
+                    30
+            },
+
+            "640x480p30": {
+                name:
+                    "640 × 480 @ 30",
+                width:
+                    640,
+                height:
+                    480,
+                frameRate:
+                    30
+            },
+
+            "720x480p30": {
+                name:
+                    "720 × 480 @ 30",
+                width:
+                    720,
+                height:
+                    480,
+                frameRate:
+                    30
+            }
+        };
+
+
+        /* ========================================================
+           Border detection
+           ======================================================== */
 
         const DETECTION_WIDTH =
             320;
 
-
         const DETECTION_INTERVAL =
             500;
-
 
         const BLACK_THRESHOLD =
             24;
 
-
         const BLACK_EDGE_RATIO =
             0.99;
 
-
         /*
-        ============================================================
-        Toolbar settings
-        ============================================================
+        Important for portrait iPhones.
+
+        Previously this was 0.35, which could reject a narrow
+        portrait phone image inside a 16:9 HDMI frame.
         */
+
+        const MIN_ACTIVE_WIDTH_RATIO =
+            0.20;
+
+        const MIN_ACTIVE_HEIGHT_RATIO =
+            0.20;
+
+
+        /* ========================================================
+           Toolbar settings
+           ======================================================== */
 
         const TOOLBAR_EDGE_MARGIN =
             8;
-
 
         const DRAG_THRESHOLD =
             4;
 
 
-        /*
-        ============================================================
-        State
-        ============================================================
-        */
+        /* ========================================================
+           State
+           ======================================================== */
 
         let stream =
             null;
 
-
         let rotation =
             0;
-
 
         let permissionGranted =
             false;
 
-
         let controlsCollapsed =
             false;
-
 
         let rendering =
             false;
 
-
         let lastDetectionTime =
             0;
-
 
         let viewerBackground =
             "#000000";
 
-
-        /*
-        Desired vertical center of the collapse/expand arrow
-        measured in browser viewport pixels.
-        */
+        let requestedCaptureMode =
+            "auto";
 
         let toolbarButtonCenterY =
             null;
 
-
         let toolbarDragging =
             false;
-
 
         let toolbarDragStartY =
             0;
 
-
         let toolbarDragStartCenterY =
             0;
-
 
         let suppressToolbarClick =
             false;
 
-
         let toolbarPointerId =
             null;
 
-
         let activeRect = {
-
             x:
                 0,
-
             y:
                 0,
-
             width:
                 0,
-
             height:
                 0
         };
@@ -884,11 +972,9 @@
         ];
 
 
-        /*
-        ============================================================
-        Background color
-        ============================================================
-        */
+        /* ========================================================
+           Background
+           ======================================================== */
 
         function applyBackgroundColor(
             color,
@@ -898,7 +984,6 @@
             viewerBackground =
                 color;
 
-
             document.documentElement
                 .style
                 .setProperty(
@@ -906,10 +991,8 @@
                     color
                 );
 
-
             backgroundColorPicker.value =
                 color;
-
 
             if (
                 save
@@ -930,23 +1013,11 @@
                     SAVED_BACKGROUND_KEY
                 );
 
-
-            if (
-                savedColor
-            ) {
-
-                applyBackgroundColor(
-                    savedColor,
-                    false
-                );
-
-            } else {
-
-                applyBackgroundColor(
+            applyBackgroundColor(
+                savedColor ||
                     "#000000",
-                    false
-                );
-            }
+                false
+            );
         }
 
 
@@ -959,11 +1030,9 @@
         }
 
 
-        /*
-        ============================================================
-        Status
-        ============================================================
-        */
+        /* ========================================================
+           Status
+           ======================================================== */
 
         function setMessage(
             text,
@@ -973,12 +1042,10 @@
             message.textContent =
                 text;
 
-
             message.classList.remove(
                 "live",
                 "error"
             );
-
 
             if (
                 type
@@ -991,27 +1058,24 @@
         }
 
 
-        /*
-        ============================================================
-        Toolbar position
-        ============================================================
-        */
+        /* ========================================================
+           Toolbar position
+           ======================================================== */
 
         function saveToolbarPosition() {
 
             if (
                 toolbarButtonCenterY ===
-                null
+                    null ||
+                !window.innerHeight
             ) {
 
                 return;
             }
 
-
             const ratio =
                 toolbarButtonCenterY /
                 window.innerHeight;
-
 
             localStorage.setItem(
                 SAVED_TOOLBAR_POSITION_KEY,
@@ -1029,7 +1093,6 @@
                     )
                 );
 
-
             if (
                 Number.isFinite(saved) &&
                 saved >= 0 &&
@@ -1040,29 +1103,18 @@
                     saved *
                     window.innerHeight;
 
-
                 positionControls();
 
                 return;
             }
 
-
-            /*
-            No saved position.
-
-            Use the arrow's current position from the initial
-            centered-menu layout.
-            */
-
             const rect =
                 collapseButton
                     .getBoundingClientRect();
 
-
             toolbarButtonCenterY =
                 rect.top +
                 rect.height / 2;
-
 
             positionControls();
         }
@@ -1078,18 +1130,11 @@
                 return;
             }
 
-
-            /*
-            Clamp the arrow itself to the viewport.
-            */
-
             const buttonHeight =
                 collapseButton.offsetHeight;
 
-
             const halfButton =
                 buttonHeight / 2;
-
 
             toolbarButtonCenterY =
                 Math.max(
@@ -1105,36 +1150,21 @@
                     )
                 );
 
-
-            /*
-            offsetTop tells us where the arrow begins inside
-            the current expanded/collapsed toolbar.
-            */
-
             const buttonOffsetTop =
                 collapseButton.offsetTop;
-
 
             let desiredControlsTop =
                 toolbarButtonCenterY -
                 buttonOffsetTop -
                 halfButton;
 
-
-            /*
-            Keep the complete menu inside the browser whenever
-            its height allows it.
-            */
-
             const controlsHeight =
                 controls.offsetHeight;
-
 
             const maximumTop =
                 window.innerHeight -
                 controlsHeight -
                 TOOLBAR_EDGE_MARGIN;
-
 
             if (
                 maximumTop >=
@@ -1157,26 +1187,16 @@
                     TOOLBAR_EDGE_MARGIN;
             }
 
-
             controls.style.top =
                 `${desiredControlsTop}px`;
 
-
             controls.style.bottom =
                 "auto";
-
 
             controls.style.transform =
                 "none";
         }
 
-
-        /*
-        Read the arrow's actual location after browser clamping.
-
-        This prevents a jump when switching between collapsed
-        and expanded states near the top or bottom of the screen.
-        */
 
         function syncToolbarPositionFromActualButton() {
 
@@ -1184,18 +1204,15 @@
                 collapseButton
                     .getBoundingClientRect();
 
-
             toolbarButtonCenterY =
                 rect.top +
                 rect.height / 2;
         }
 
 
-        /*
-        ============================================================
-        Collapse / expand controls
-        ============================================================
-        */
+        /* ========================================================
+           Collapse / expand
+           ======================================================== */
 
         function setControlsCollapsed(
             collapsed
@@ -1209,53 +1226,32 @@
                 return;
             }
 
-
-            /*
-            Preserve the current arrow location.
-            */
-
             syncToolbarPositionFromActualButton();
-
 
             controls.classList.toggle(
                 "collapsed",
                 collapsed
             );
 
-
             message.classList.toggle(
                 "collapsed",
                 collapsed
             );
 
-
             controlsCollapsed =
                 collapsed;
-
 
             collapseButton.textContent =
                 collapsed
                     ? "▶"
                     : "◀";
 
-
             collapseButton.title =
                 collapsed
                     ? "Click to show controls. Drag up or down to move."
                     : "Click to hide controls. Drag up or down to move.";
 
-
-            /*
-            Re-position after the toolbar dimensions have changed.
-            */
-
             positionControls();
-
-
-            /*
-            Store the real resulting arrow position so toggling
-            again does not cause a jump.
-            */
 
             syncToolbarPositionFromActualButton();
 
@@ -1271,16 +1267,9 @@
         }
 
 
-        /*
-        ============================================================
-        Toolbar dragging
-
-        Pointer Events support mouse, pen, and touch.
-
-        A short press remains a normal click.
-        Moving more than DRAG_THRESHOLD pixels becomes a drag.
-        ============================================================
-        */
+        /* ========================================================
+           Toolbar dragging
+           ======================================================== */
 
         collapseButton.addEventListener(
             "pointerdown",
@@ -1294,29 +1283,22 @@
                     return;
                 }
 
-
                 syncToolbarPositionFromActualButton();
-
 
                 toolbarPointerId =
                     event.pointerId;
 
-
                 toolbarDragStartY =
                     event.clientY;
-
 
                 toolbarDragStartCenterY =
                     toolbarButtonCenterY;
 
-
                 toolbarDragging =
                     false;
 
-
                 suppressToolbarClick =
                     false;
-
 
                 collapseButton.setPointerCapture(
                     event.pointerId
@@ -1337,11 +1319,9 @@
                     return;
                 }
 
-
                 const deltaY =
                     event.clientY -
                     toolbarDragStartY;
-
 
                 if (
                     !toolbarDragging &&
@@ -1353,7 +1333,6 @@
                         true;
                 }
 
-
                 if (
                     !toolbarDragging
                 ) {
@@ -1361,23 +1340,13 @@
                     return;
                 }
 
-
                 event.preventDefault();
-
 
                 toolbarButtonCenterY =
                     toolbarDragStartCenterY +
                     deltaY;
 
-
                 positionControls();
-
-
-                /*
-                The expanded menu may reach a viewport boundary.
-                Keep our saved anchor synchronized with wherever
-                the arrow actually ended up.
-                */
 
                 syncToolbarPositionFromActualButton();
             }
@@ -1396,7 +1365,6 @@
                 return;
             }
 
-
             if (
                 toolbarDragging
             ) {
@@ -1404,12 +1372,10 @@
                 suppressToolbarClick =
                     true;
 
-
                 syncToolbarPositionFromActualButton();
 
                 saveToolbarPosition();
             }
-
 
             try {
 
@@ -1420,17 +1386,11 @@
             } catch (
                 error
             ) {
-
-                /*
-                Pointer capture may already have been released.
-                No action required.
-                */
+                // Pointer capture may already be released.
             }
-
 
             toolbarPointerId =
                 null;
-
 
             toolbarDragging =
                 false;
@@ -1460,7 +1420,6 @@
                     suppressToolbarClick =
                         false;
 
-
                     event.preventDefault();
 
                     event.stopPropagation();
@@ -1468,17 +1427,14 @@
                     return;
                 }
 
-
                 toggleControls();
             }
         );
 
 
-        /*
-        ============================================================
-        Browser support
-        ============================================================
-        */
+        /* ========================================================
+           Browser support
+           ======================================================== */
 
         function checkSupport() {
 
@@ -1490,7 +1446,6 @@
                     "This page must be opened over HTTPS."
                 );
             }
-
 
             if (
                 !navigator.mediaDevices ||
@@ -1505,11 +1460,9 @@
         }
 
 
-        /*
-        ============================================================
-        Device scoring
-        ============================================================
-        */
+        /* ========================================================
+           Device scoring
+           ======================================================== */
 
         function getDeviceScore(
             device
@@ -1521,14 +1474,13 @@
                     ""
                 ).toLowerCase();
 
-
             let score =
                 0;
 
-
             for (
                 let i = 0;
-                i < preferredDeviceWords.length;
+                i <
+                preferredDeviceWords.length;
                 i++
             ) {
 
@@ -1543,7 +1495,6 @@
                 }
             }
 
-
             if (
                 label.includes("integrated") ||
                 label.includes("facetime") ||
@@ -1555,16 +1506,13 @@
                     50;
             }
 
-
             return score;
         }
 
 
-        /*
-        ============================================================
-        Camera permission
-        ============================================================
-        */
+        /* ========================================================
+           Permission
+           ======================================================== */
 
         async function requestPermission() {
 
@@ -1575,23 +1523,18 @@
                 return;
             }
 
-
             setMessage(
                 "Requesting camera permission..."
             );
 
-
             const temporaryStream =
                 await navigator.mediaDevices
                     .getUserMedia({
-
                         video:
                             true,
-
                         audio:
                             false
                     });
-
 
             temporaryStream
                 .getTracks()
@@ -1600,17 +1543,14 @@
                         track.stop()
                 );
 
-
             permissionGranted =
                 true;
         }
 
 
-        /*
-        ============================================================
-        Device enumeration
-        ============================================================
-        */
+        /* ========================================================
+           Devices
+           ======================================================== */
 
         async function refreshDevices(
             requestCameraPermission = false
@@ -1618,16 +1558,13 @@
 
             checkSupport();
 
-
             const previousSelection =
                 deviceSelect.value;
-
 
             const savedSelection =
                 localStorage.getItem(
                     SAVED_DEVICE_KEY
                 );
-
 
             if (
                 requestCameraPermission
@@ -1636,11 +1573,9 @@
                 await requestPermission();
             }
 
-
             const devices =
                 await navigator.mediaDevices
                     .enumerateDevices();
-
 
             const videoDevices =
                 devices.filter(
@@ -1649,10 +1584,8 @@
                         "videoinput"
                 );
 
-
             deviceSelect.innerHTML =
                 "";
-
 
             if (
                 videoDevices.length ===
@@ -1664,37 +1597,29 @@
                         "option"
                     );
 
-
                 option.value =
                     "";
 
-
                 option.textContent =
                     "No video devices found";
-
 
                 deviceSelect.appendChild(
                     option
                 );
 
-
                 startButton.disabled =
                     true;
-
 
                 setMessage(
                     "No video capture devices were found.",
                     "error"
                 );
 
-
                 return;
             }
 
-
             startButton.disabled =
                 false;
-
 
             videoDevices.forEach(
                 (
@@ -1707,15 +1632,12 @@
                             "option"
                         );
 
-
                     option.value =
                         device.deviceId;
-
 
                     option.textContent =
                         device.label ||
                         `Camera ${index + 1}`;
-
 
                     deviceSelect.appendChild(
                         option
@@ -1723,14 +1645,12 @@
                 }
             );
 
-
             let selectedDevice =
                 videoDevices.find(
                     device =>
                         device.deviceId ===
                         previousSelection
                 );
-
 
             if (
                 !selectedDevice
@@ -1743,7 +1663,6 @@
                             savedSelection
                     );
             }
-
 
             if (
                 !selectedDevice
@@ -1761,7 +1680,6 @@
                         )[0];
             }
 
-
             if (
                 selectedDevice
             ) {
@@ -1772,11 +1690,123 @@
         }
 
 
-        /*
-        ============================================================
-        Rotation
-        ============================================================
-        */
+        /* ========================================================
+           Capture mode
+           ======================================================== */
+
+        function loadCaptureMode() {
+
+            const saved =
+                localStorage.getItem(
+                    SAVED_CAPTURE_MODE_KEY
+                );
+
+            if (
+                saved &&
+                captureModes[saved]
+            ) {
+
+                captureModeSelect.value =
+                    saved;
+
+                requestedCaptureMode =
+                    saved;
+
+            } else {
+
+                captureModeSelect.value =
+                    "auto";
+
+                requestedCaptureMode =
+                    "auto";
+            }
+        }
+
+
+        function getSelectedCaptureMode() {
+
+            const key =
+                captureModeSelect.value;
+
+            return (
+                captureModes[key] ||
+                captureModes.auto
+            );
+        }
+
+
+        function buildVideoConstraints(
+            deviceId
+        ) {
+
+            const mode =
+                getSelectedCaptureMode();
+
+            /*
+            Auto means literally let the UVC device/browser
+            choose its normal default output mode.
+            */
+
+            if (
+                captureModeSelect.value ===
+                "auto"
+            ) {
+
+                return {
+                    deviceId: {
+                        exact:
+                            deviceId
+                    }
+                };
+            }
+
+            /*
+            Resolution is EXACT for testing.
+
+            Frame rate is requested as the target/max rather than
+            exact because many "30 fps" devices actually report
+            29.97, and many "60 fps" devices report 59.94.
+            */
+
+            return {
+
+                deviceId: {
+                    exact:
+                        deviceId
+                },
+
+                width: {
+                    exact:
+                        mode.width
+                },
+
+                height: {
+                    exact:
+                        mode.height
+                },
+
+                frameRate: {
+                    ideal:
+                        mode.frameRate,
+                    max:
+                        mode.frameRate
+                }
+            };
+        }
+
+
+        function getRequestedModeText() {
+
+            const mode =
+                getSelectedCaptureMode();
+
+            return mode.name;
+        }
+
+
+        /* ========================================================
+           Rotation
+           ======================================================== */
 
         function normalizeRotation() {
 
@@ -1792,39 +1822,30 @@
         }
 
 
-        /*
-        ============================================================
-        Reset active rectangle
-        ============================================================
-        */
+        /* ========================================================
+           Active rectangle
+           ======================================================== */
 
         function resetActiveRect() {
 
             activeRect = {
-
                 x:
                     0,
-
                 y:
                     0,
-
                 width:
                     sourceVideo.videoWidth,
-
                 height:
                     sourceVideo.videoHeight
             };
-
 
             updateOutputGeometry();
         }
 
 
-        /*
-        ============================================================
-        Black column detection
-        ============================================================
-        */
+        /* ========================================================
+           Black edge tests
+           ======================================================== */
 
         function isBlackColumn(
             imageData,
@@ -1836,10 +1857,8 @@
             let darkPixels =
                 0;
 
-
             let pixelCount =
                 0;
-
 
             for (
                 let y = 0;
@@ -1855,24 +1874,18 @@
                     ) *
                     4;
 
-
                 const r =
                     imageData[index];
 
-
                 const g =
                     imageData[
-                        index +
-                        1
+                        index + 1
                     ];
-
 
                 const b =
                     imageData[
-                        index +
-                        2
+                        index + 2
                     ];
-
 
                 if (
                     r <= BLACK_THRESHOLD &&
@@ -1883,10 +1896,8 @@
                     darkPixels++;
                 }
 
-
                 pixelCount++;
             }
-
 
             return (
                 darkPixels /
@@ -1895,12 +1906,6 @@
             BLACK_EDGE_RATIO;
         }
 
-
-        /*
-        ============================================================
-        Black row detection
-        ============================================================
-        */
 
         function isBlackRow(
             imageData,
@@ -1912,10 +1917,8 @@
             let darkPixels =
                 0;
 
-
             let pixelCount =
                 0;
-
 
             for (
                 let x = 0;
@@ -1931,24 +1934,18 @@
                     ) *
                     4;
 
-
                 const r =
                     imageData[index];
 
-
                 const g =
                     imageData[
-                        index +
-                        1
+                        index + 1
                     ];
-
 
                 const b =
                     imageData[
-                        index +
-                        2
+                        index + 2
                     ];
-
 
                 if (
                     r <= BLACK_THRESHOLD &&
@@ -1959,10 +1956,8 @@
                     darkPixels++;
                 }
 
-
                 pixelCount++;
             }
-
 
             return (
                 darkPixels /
@@ -1972,23 +1967,17 @@
         }
 
 
-        /*
-        ============================================================
-        Detect active picture rectangle
-
-        Removes uniform black HDMI borders from all four sides.
-        ============================================================
-        */
+        /* ========================================================
+           Detect active HDMI picture
+           ======================================================== */
 
         function detectActiveRect() {
 
             const videoWidth =
                 sourceVideo.videoWidth;
 
-
             const videoHeight =
                 sourceVideo.videoHeight;
-
 
             if (
                 !videoWidth ||
@@ -1998,14 +1987,13 @@
                 return;
             }
 
-
             const detectWidth =
                 DETECTION_WIDTH;
-
 
             const detectHeight =
                 Math.max(
                     1,
+
                     Math.round(
                         detectWidth *
                         videoHeight /
@@ -2013,14 +2001,11 @@
                     )
                 );
 
-
             detectionCanvas.width =
                 detectWidth;
 
-
             detectionCanvas.height =
                 detectHeight;
-
 
             detectionContext.drawImage(
                 sourceVideo,
@@ -2029,7 +2014,6 @@
                 detectWidth,
                 detectHeight
             );
-
 
             const pixels =
                 detectionContext
@@ -2042,18 +2026,18 @@
                     .data;
 
 
+            /*
+            Left / right
+            */
+
             let left =
                 0;
 
-
             let right =
-                detectWidth -
-                1;
-
+                detectWidth - 1;
 
             while (
-                left <
-                    right &&
+                left < right &&
                 isBlackColumn(
                     pixels,
                     detectWidth,
@@ -2065,10 +2049,8 @@
                 left++;
             }
 
-
             while (
-                right >
-                    left &&
+                right > left &&
                 isBlackColumn(
                     pixels,
                     detectWidth,
@@ -2081,18 +2063,18 @@
             }
 
 
+            /*
+            Top / bottom
+            */
+
             let top =
                 0;
 
-
             let bottom =
-                detectHeight -
-                1;
-
+                detectHeight - 1;
 
             while (
-                top <
-                    bottom &&
+                top < bottom &&
                 isBlackRow(
                     pixels,
                     detectWidth,
@@ -2104,10 +2086,8 @@
                 top++;
             }
 
-
             while (
-                bottom >
-                    top &&
+                bottom > top &&
                 isBlackRow(
                     pixels,
                     detectWidth,
@@ -2121,9 +2101,7 @@
 
 
             /*
-            Put one detection pixel back on every side.
-            At 1920x1080 with 320x180 detection this is
-            approximately six source pixels.
+            Add one detection pixel of safety back.
             */
 
             left =
@@ -2132,15 +2110,11 @@
                     left - 1
                 );
 
-
             right =
                 Math.min(
-                    detectWidth -
-                        1,
-                    right +
-                        1
+                    detectWidth - 1,
+                    right + 1
                 );
-
 
             top =
                 Math.max(
@@ -2148,13 +2122,10 @@
                     top - 1
                 );
 
-
             bottom =
                 Math.min(
-                    detectHeight -
-                        1,
-                    bottom +
-                        1
+                    detectHeight - 1,
+                    bottom + 1
                 );
 
 
@@ -2163,21 +2134,24 @@
                 left +
                 1;
 
-
             const detectedHeight =
                 bottom -
                 top +
                 1;
 
 
+            /*
+            20% minimum allows narrow portrait iPhones.
+            */
+
             if (
                 detectedWidth <
                     detectWidth *
-                        0.05 ||
+                    MIN_ACTIVE_WIDTH_RATIO ||
 
                 detectedHeight <
                     detectHeight *
-                        0.05
+                    MIN_ACTIVE_HEIGHT_RATIO
             ) {
 
                 return;
@@ -2191,17 +2165,14 @@
                     videoWidth
                 );
 
-
             const sourceRight =
                 Math.ceil(
                     (
-                        right +
-                        1
+                        right + 1
                     ) /
                     detectWidth *
                     videoWidth
                 );
-
 
             const sourceTop =
                 Math.floor(
@@ -2210,12 +2181,10 @@
                     videoHeight
                 );
 
-
             const sourceBottom =
                 Math.ceil(
                     (
-                        bottom +
-                        1
+                        bottom + 1
                     ) /
                     detectHeight *
                     videoHeight
@@ -2245,26 +2214,22 @@
                 Math.abs(
                     newRect.x -
                     activeRect.x
-                ) >
-                3 ||
+                ) > 3 ||
 
                 Math.abs(
                     newRect.y -
                     activeRect.y
-                ) >
-                3 ||
+                ) > 3 ||
 
                 Math.abs(
                     newRect.width -
                     activeRect.width
-                ) >
-                6 ||
+                ) > 6 ||
 
                 Math.abs(
                     newRect.height -
                     activeRect.height
-                ) >
-                6;
+                ) > 6;
 
 
             if (
@@ -2274,22 +2239,18 @@
                 activeRect =
                     newRect;
 
-
                 updateOutputGeometry();
             }
         }
 
 
-        /*
-        ============================================================
-        Canvas output resolution
-        ============================================================
-        */
+        /* ========================================================
+           Canvas geometry
+           ======================================================== */
 
         function updateOutputGeometry() {
 
             normalizeRotation();
-
 
             if (
                 !activeRect.width ||
@@ -2299,27 +2260,19 @@
                 return;
             }
 
-
             const quarterTurn =
-
-                rotation ===
-                    90 ||
-
-                rotation ===
-                    270;
-
+                rotation === 90 ||
+                rotation === 270;
 
             const outputWidth =
                 quarterTurn
                     ? activeRect.height
                     : activeRect.width;
 
-
             const outputHeight =
                 quarterTurn
                     ? activeRect.width
                     : activeRect.height;
-
 
             if (
                 outputCanvas.width !==
@@ -2330,7 +2283,6 @@
                     outputWidth;
             }
 
-
             if (
                 outputCanvas.height !==
                 outputHeight
@@ -2340,18 +2292,11 @@
                     outputHeight;
             }
 
-
             updateCanvasDisplaySize();
 
             updateDiagnostics();
         }
 
-
-        /*
-        ============================================================
-        Maximize complete image in browser
-        ============================================================
-        */
 
         function updateCanvasDisplaySize() {
 
@@ -2363,14 +2308,11 @@
                 return;
             }
 
-
             const availableWidth =
                 stage.clientWidth;
 
-
             const availableHeight =
                 stage.clientHeight;
-
 
             if (
                 !availableWidth ||
@@ -2380,25 +2322,20 @@
                 return;
             }
 
-
             const scale =
                 Math.min(
-
                     availableWidth /
                         outputCanvas.width,
 
                     availableHeight /
                         outputCanvas.height
-
                 );
-
 
             outputCanvas.style.width =
                 `${
                     outputCanvas.width *
                     scale
                 }px`;
-
 
             outputCanvas.style.height =
                 `${
@@ -2408,11 +2345,9 @@
         }
 
 
-        /*
-        ============================================================
-        Draw frame
-        ============================================================
-        */
+        /* ========================================================
+           Render
+           ======================================================== */
 
         function drawOutputFrame() {
 
@@ -2424,33 +2359,25 @@
                 return;
             }
 
-
             const sx =
                 activeRect.x;
-
 
             const sy =
                 activeRect.y;
 
-
             const sw =
                 activeRect.width;
-
 
             const sh =
                 activeRect.height;
 
-
             const cw =
                 outputCanvas.width;
-
 
             const ch =
                 outputCanvas.height;
 
-
             outputContext.save();
-
 
             outputContext.setTransform(
                 1,
@@ -2461,10 +2388,8 @@
                 0
             );
 
-
             outputContext.fillStyle =
                 viewerBackground;
-
 
             outputContext.fillRect(
                 0,
@@ -2472,7 +2397,6 @@
                 cw,
                 ch
             );
-
 
             switch (
                 rotation
@@ -2485,10 +2409,8 @@
                         0
                     );
 
-
                     outputContext.rotate(
-                        Math.PI /
-                        2
+                        Math.PI / 2
                     );
 
                     break;
@@ -2500,7 +2422,6 @@
                         cw,
                         ch
                     );
-
 
                     outputContext.rotate(
                         Math.PI
@@ -2516,15 +2437,12 @@
                         ch
                     );
 
-
                     outputContext.rotate(
-                        -Math.PI /
-                        2
+                        -Math.PI / 2
                     );
 
                     break;
             }
-
 
             outputContext.drawImage(
                 sourceVideo,
@@ -2540,16 +2458,9 @@
                 sh
             );
 
-
             outputContext.restore();
         }
 
-
-        /*
-        ============================================================
-        Rendering
-        ============================================================
-        */
 
         function renderFrame(
             timestamp
@@ -2562,7 +2473,6 @@
                 return;
             }
 
-
             if (
                 timestamp -
                     lastDetectionTime >=
@@ -2572,13 +2482,10 @@
                 lastDetectionTime =
                     timestamp;
 
-
                 detectActiveRect();
             }
 
-
             drawOutputFrame();
-
 
             requestAnimationFrame(
                 renderFrame
@@ -2595,14 +2502,11 @@
                 return;
             }
 
-
             rendering =
                 true;
 
-
             lastDetectionTime =
                 0;
-
 
             requestAnimationFrame(
                 renderFrame
@@ -2617,11 +2521,33 @@
         }
 
 
-        /*
-        ============================================================
-        Diagnostics
-        ============================================================
-        */
+        /* ========================================================
+           Diagnostics
+           ======================================================== */
+
+        function formatFrameRate(
+            value
+        ) {
+
+            if (
+                value === undefined ||
+                value === null ||
+                !Number.isFinite(
+                    Number(value)
+                )
+            ) {
+
+                return "?";
+            }
+
+            return Number(value)
+                .toFixed(2)
+                .replace(
+                    /\.00$/,
+                    ""
+                );
+        }
+
 
         function updateDiagnostics() {
 
@@ -2635,51 +2561,56 @@
                 return;
             }
 
-
             const track =
                 stream
                     .getVideoTracks()[0];
 
+            const settings =
+                track.getSettings();
 
-            const inputWidth =
+            const actualWidth =
+                settings.width ||
                 sourceVideo.videoWidth ||
                 "?";
 
-
-            const inputHeight =
+            const actualHeight =
+                settings.height ||
                 sourceVideo.videoHeight ||
                 "?";
 
+            const actualFrameRate =
+                formatFrameRate(
+                    settings.frameRate
+                );
 
-            const outputWidth =
+            const requested =
+                getRequestedModeText();
+
+            const viewWidth =
                 outputCanvas.width ||
                 "?";
 
-
-            const outputHeight =
+            const viewHeight =
                 outputCanvas.height ||
                 "?";
 
-
-            diagnostics.textContent =
-                `${track.label || "Video Capture"} ` +
-                `• Input ${inputWidth}×${inputHeight} ` +
-                `• View ${outputWidth}×${outputHeight}`;
+            diagnostics.innerHTML =
+                `<strong>${track.label || "Video Capture"}</strong>` +
+                `<br>Requested: ${requested}` +
+                `<br>Actual: ${actualWidth} × ${actualHeight} @ ${actualFrameRate}` +
+                `<br>Detected view: ${viewWidth} × ${viewHeight}`;
         }
 
 
-        /*
-        ============================================================
-        Stop capture
-        ============================================================
-        */
+        /* ========================================================
+           Stop capture
+           ======================================================== */
 
         function stopCapture(
             updateMessage = true
         ) {
 
             stopRendering();
-
 
             if (
                 stream
@@ -2693,14 +2624,11 @@
                     );
             }
 
-
             stream =
                 null;
 
-
             sourceVideo.srcObject =
                 null;
-
 
             outputContext.clearRect(
                 0,
@@ -2709,22 +2637,17 @@
                 outputCanvas.height
             );
 
-
             startup.style.display =
                 "flex";
-
 
             startButton.disabled =
                 false;
 
-
             stopButton.disabled =
                 true;
 
-
             diagnostics.textContent =
                 "No active video";
-
 
             if (
                 updateMessage
@@ -2737,11 +2660,9 @@
         }
 
 
-        /*
-        ============================================================
-        Start capture
-        ============================================================
-        */
+        /* ========================================================
+           Start capture
+           ======================================================== */
 
         async function startCapture() {
 
@@ -2749,24 +2670,19 @@
 
                 checkSupport();
 
-
                 startButton.disabled =
                     true;
 
-
                 setMessage(
-                    "Preparing video devices..."
+                    "Preparing video device..."
                 );
-
 
                 await refreshDevices(
                     true
                 );
 
-
                 const deviceId =
                     deviceSelect.value;
-
 
                 if (
                     !deviceId
@@ -2777,147 +2693,132 @@
                     );
                 }
 
-
                 stopCapture(
                     false
                 );
 
+                startButton.disabled =
+                    true;
 
-                setMessage(
-                    "Starting capture..."
+                requestedCaptureMode =
+                    captureModeSelect.value;
+
+                localStorage.setItem(
+                    SAVED_CAPTURE_MODE_KEY,
+                    requestedCaptureMode
                 );
 
+                const modeText =
+                    getRequestedModeText();
 
-                const constraints = {
+                setMessage(
+                    `Opening ${modeText}...`
+                );
 
-                    audio:
-                        false,
-
-                    video: {
-
-                        deviceId: {
-
-                            exact:
-                                deviceId
-                        },
-
-                        width: {
-
-                            ideal:
-                                1920
-                        },
-
-                        height: {
-
-                            ideal:
-                                1080
-                        },
-
-                        frameRate: {
-
-                            ideal:
-                                60,
-
-                            max:
-                                60
-                        }
-                    }
-                };
-
-
-                try {
-
-                    stream =
-                        await navigator.mediaDevices
-                            .getUserMedia(
-                                constraints
-                            );
-
-                } catch (
-                    error
-                ) {
-
-                    console.warn(
-                        "Preferred capture mode failed. Retrying with device defaults.",
-                        error
+                const videoConstraints =
+                    buildVideoConstraints(
+                        deviceId
                     );
 
 
-                    stream =
-                        await navigator.mediaDevices
-                            .getUserMedia({
+                /*
+                IMPORTANT:
 
-                                audio:
-                                    false,
+                For explicitly selected test resolutions we DO NOT
+                silently fall back to another resolution.
 
-                                video: {
+                If the mode cannot be opened, that is useful test
+                information.
+                */
 
-                                    deviceId: {
+                stream =
+                    await navigator.mediaDevices
+                        .getUserMedia({
 
-                                        exact:
-                                            deviceId
-                                    }
-                                }
-                            });
-                }
+                            audio:
+                                false,
+
+                            video:
+                                videoConstraints
+                        });
 
 
                 sourceVideo.srcObject =
                     stream;
 
-
                 await sourceVideo.play();
+
+
+                /*
+                Wait one frame so videoWidth/videoHeight are fully
+                established before performing border detection.
+                */
+
+                await new Promise(
+                    resolve =>
+                        requestAnimationFrame(
+                            resolve
+                        )
+                );
 
 
                 resetActiveRect();
 
-
                 detectActiveRect();
 
-
                 startRendering();
-
 
                 startup.style.display =
                     "none";
 
-
                 startButton.disabled =
                     true;
 
-
                 stopButton.disabled =
                     false;
-
 
                 localStorage.setItem(
                     SAVED_DEVICE_KEY,
                     deviceId
                 );
 
-
                 updateDiagnostics();
 
+                const track =
+                    stream
+                        .getVideoTracks()[0];
+
+                const settings =
+                    track.getSettings();
+
+                const actualMode =
+                    `${
+                        settings.width ||
+                        sourceVideo.videoWidth ||
+                        "?"
+                    } × ${
+                        settings.height ||
+                        sourceVideo.videoHeight ||
+                        "?"
+                    } @ ${
+                        formatFrameRate(
+                            settings.frameRate
+                        )
+                    }`;
 
                 setMessage(
-                    "Wired capture is live.",
+                    `Capture live: ${actualMode}`,
                     "live"
                 );
 
 
                 /*
-                Automatically move the toolbar out of the way.
-                Its current vertical position is preserved.
+                Automatically collapse after successful start.
                 */
 
                 setControlsCollapsed(
                     true
                 );
-
-
-                const track =
-                    stream
-                        .getVideoTracks()[0];
 
 
                 track.addEventListener(
@@ -2927,7 +2828,6 @@
                         stopCapture(
                             false
                         );
-
 
                         setMessage(
                             "Capture device disconnected.",
@@ -2944,14 +2844,32 @@
                     error
                 );
 
+                if (
+                    stream
+                ) {
+
+                    stream
+                        .getTracks()
+                        .forEach(
+                            track =>
+                                track.stop()
+                        );
+
+                    stream =
+                        null;
+                }
+
+                sourceVideo.srcObject =
+                    null;
 
                 startButton.disabled =
                     false;
 
-
                 stopButton.disabled =
                     true;
 
+                startup.style.display =
+                    "flex";
 
                 showCaptureError(
                     error
@@ -2960,11 +2878,9 @@
         }
 
 
-        /*
-        ============================================================
-        Errors
-        ============================================================
-        */
+        /* ========================================================
+           Capture errors
+           ======================================================== */
 
         function showCaptureError(
             error
@@ -2974,10 +2890,28 @@
                 error.message ||
                 String(error);
 
+            const mode =
+                getRequestedModeText();
 
             switch (
                 error.name
             ) {
+
+                case "OverconstrainedError":
+
+                    text =
+                        `The capture card/browser could not open ${mode}. Try another Capture Mode.`;
+
+                    if (
+                        error.constraint
+                    ) {
+
+                        text +=
+                            ` Failed constraint: ${error.constraint}.`;
+                    }
+
+                    break;
+
 
                 case "NotAllowedError":
 
@@ -2990,7 +2924,7 @@
                 case "NotFoundError":
 
                     text =
-                        "No compatible video capture device was found.";
+                        `No compatible video device or ${mode} capture mode was found.`;
 
                     break;
 
@@ -2998,7 +2932,15 @@
                 case "NotReadableError":
 
                     text =
-                        "Windows found the capture device but could not open it.";
+                        "Windows found the capture device but could not open it. The device may be busy or the HDMI signal may not be locked.";
+
+                    break;
+
+
+                case "AbortError":
+
+                    text =
+                        "The capture attempt was interrupted. Try another capture mode.";
 
                     break;
 
@@ -3011,6 +2953,10 @@
                     break;
             }
 
+            diagnostics.innerHTML =
+                `<strong>Capture failed</strong>` +
+                `<br>Requested: ${mode}` +
+                `<br>${text}`;
 
             setMessage(
                 text,
@@ -3019,20 +2965,16 @@
         }
 
 
-        /*
-        ============================================================
-        Rotation
-        ============================================================
-        */
+        /* ========================================================
+           Rotation
+           ======================================================== */
 
         function rotateLeft() {
 
             rotation -=
                 90;
 
-
             normalizeRotation();
-
 
             updateOutputGeometry();
         }
@@ -3043,19 +2985,15 @@
             rotation +=
                 90;
 
-
             normalizeRotation();
-
 
             updateOutputGeometry();
         }
 
 
-        /*
-        ============================================================
-        Fullscreen
-        ============================================================
-        */
+        /* ========================================================
+           Fullscreen
+           ======================================================== */
 
         async function toggleFullscreen() {
 
@@ -3083,7 +3021,6 @@
                     error
                 );
 
-
                 setMessage(
                     "Fullscreen mode was blocked by the browser.",
                     "error"
@@ -3092,11 +3029,9 @@
         }
 
 
-        /*
-        ============================================================
-        Other events
-        ============================================================
-        */
+        /* ========================================================
+           Control events
+           ======================================================== */
 
         refreshButton.addEventListener(
             "click",
@@ -3128,10 +3063,12 @@
 
         stopButton.addEventListener(
             "click",
-            () =>
+            () => {
+
                 stopCapture(
                     true
-                )
+                );
+            }
         );
 
 
@@ -3173,7 +3110,7 @@
 
         deviceSelect.addEventListener(
             "change",
-            () => {
+            async () => {
 
                 if (
                     deviceSelect.value
@@ -3184,27 +3121,64 @@
                         deviceSelect.value
                     );
                 }
+
+                /*
+                If capture is already active, selecting another
+                device immediately restarts the stream.
+                */
+
+                if (
+                    stream
+                ) {
+
+                    await startCapture();
+                }
             }
         );
 
 
-        /*
-        ============================================================
-        Browser resize
-        ============================================================
-        */
+        captureModeSelect.addEventListener(
+            "change",
+            async () => {
+
+                requestedCaptureMode =
+                    captureModeSelect.value;
+
+                localStorage.setItem(
+                    SAVED_CAPTURE_MODE_KEY,
+                    requestedCaptureMode
+                );
+
+                /*
+                If we are already live, immediately retry using
+                the newly selected resolution.
+                */
+
+                if (
+                    stream
+                ) {
+
+                    await startCapture();
+
+                } else {
+
+                    setMessage(
+                        `Capture mode set to ${getRequestedModeText()}.`
+                    );
+                }
+            }
+        );
+
+
+        /* ========================================================
+           Browser resize
+           ======================================================== */
 
         window.addEventListener(
             "resize",
             () => {
 
                 updateCanvasDisplaySize();
-
-
-                /*
-                Reposition the toolbar using its saved vertical
-                anchor, then sync to the actual clamped position.
-                */
 
                 positionControls();
 
@@ -3235,11 +3209,9 @@
         );
 
 
-        /*
-        ============================================================
-        Source resolution changed
-        ============================================================
-        */
+        /* ========================================================
+           Source resolution change
+           ======================================================== */
 
         sourceVideo.addEventListener(
             "resize",
@@ -3248,15 +3220,15 @@
                 resetActiveRect();
 
                 detectActiveRect();
+
+                updateDiagnostics();
             }
         );
 
 
-        /*
-        ============================================================
-        Capture device connected/disconnected
-        ============================================================
-        */
+        /* ========================================================
+           Device plug / unplug
+           ======================================================== */
 
         if (
             navigator.mediaDevices &&
@@ -3288,11 +3260,9 @@
         }
 
 
-        /*
-        ============================================================
-        Initialize
-        ============================================================
-        */
+        /* ========================================================
+           Initialize
+           ======================================================== */
 
         async function initialize() {
 
@@ -3300,22 +3270,15 @@
 
                 loadBackgroundColor();
 
-
-                /*
-                Capture the initial arrow position after the browser
-                has completed the first layout.
-                */
+                loadCaptureMode();
 
                 loadToolbarPosition();
 
-
                 checkSupport();
-
 
                 await refreshDevices(
                     false
                 );
-
 
                 setMessage(
                     "Connect the capture card and click Start Capture."
@@ -3328,10 +3291,8 @@
                 startButton.disabled =
                     true;
 
-
                 refreshButton.disabled =
                     true;
-
 
                 showCaptureError(
                     error
